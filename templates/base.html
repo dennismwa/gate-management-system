@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Gate Management System - Professional visitor and vehicle access control">
+    <meta name="theme-color" content="#3B82F6">
+    <title>{% if page_title %}{{ page_title }} - {% endif %}Gate Management System</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Feather Icons -->
+    <script src="https://unpkg.com/feather-icons"></script>
+    
+    <!-- Chart.js for visualizations -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- Custom CSS -->
+    <style>
+        :root {
+            --primary-color: #3B82F6;
+            --primary-dark: #1E40AF;
+            --secondary-color: #10B981;
+            --accent-color: #F59E0B;
+            --danger-color: #EF4444;
+            --warning-color: #F97316;
+            --success-color: #22C55E;
+            --gray-light: #F8FAFC;
+            --gray-medium: #64748B;
+            --gray-dark: #1E293B;
+        }
+        
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        
+        .glass-effect {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .card-hover {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        .card-hover:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
+            transition: all 0.3s ease;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(59, 130, 246, 0.3);
+        }
+        
+        .btn-secondary {
+            background: linear-gradient(135deg, var(--secondary-color) 0%, #059669 100%);
+        }
+        
+        .stat-card {
+            background: linear-gradient(135deg, rgba(255,255,255,0.9) 0%, rgba(255,255,255,0.7) 100%);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.3);
+        }
+        
+        .mobile-nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            border-top: 1px solid rgba(0, 0, 0, 0.1);
+            z-index: 50;
+        }
+        
+        .nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 12px;
+            transition: all 0.2s ease;
+            border-radius: 12px;
+            margin: 4px;
+        }
+        
+        .nav-item.active {
+            background: var(--primary-color);
+            color: white;
+        }
+        
+        .nav-item:not(.active):hover {
+            background: rgba(59, 130, 246, 0.1);
+        }
+        
+        .loading-spinner {
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        
+        .fade-in {
+            animation: fadeIn 0.5s ease-in;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .pulse {
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        
+        /* QR Scanner overlay */
+        .qr-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 1000;
+            display: none;
+        }
+        
+        .qr-scanner-frame {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 280px;
+            height: 280px;
+            border: 3px solid var(--primary-color);
+            border-radius: 20px;
+            background: transparent;
+        }
+        
+        .qr-corner {
+            position: absolute;
+            width: 30px;
+            height: 30px;
+            border: 4px solid var(--primary-color);
+        }
+        
+        .qr-corner.top-left {
+            top: -3px;
+            left: -3px;
+            border-right: none;
+            border-bottom: none;
+        }
+        
+        .qr-corner.top-right {
+            top: -3px;
+            right: -3px;
+            border-left: none;
+            border-bottom: none;
+        }
+        
+        .qr-corner.bottom-left {
+            bottom: -3px;
+            left: -3px;
+            border-right: none;
+            border-top: none;
+        }
+        
+        .qr-corner.bottom-right {
+            bottom: -3px;
+            right: -3px;
+            border-left: none;
+            border-top: none;
+        }
+        
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: var(--primary-color);
+            border-radius: 3px;
+        }
+        
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--primary-dark);
+        }
+        
+        /* Responsive utilities */
+        @media (max-width: 768px) {
+            .mobile-hidden {
+                display: none !important;
+            }
+            
+            .mobile-full {
+                width: 100% !important;
+            }
+            
+            .mobile-padding {
+                padding-bottom: 80px !important;
+            }
+        }
+        
+        @media (min-width: 769px) {
+            .desktop-hidden {
+                display: none !important;
+            }
+            
+            .mobile-nav {
+                display: none;
+            }
+        }
+    </style>
+    
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="/manifest.json">
+    
+    <!-- Apple PWA tags -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="Gate Management">
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" href="/static/images/favicon.png">
+    <link rel="apple-touch-icon" href="/static/images/icon-192.png">
+    
+    {% block extra_head %}{% endblock %}
+</head>
+
+<body class="h-full bg-gray-50">
+    <!-- Desktop Navigation -->
+    <nav class="mobile-hidden bg-white shadow-lg border-b border-gray-200">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16">
+                <div class="flex items-center">
+                    <img class="h-8 w-8 mr-3" src="/static/images/logo.png" alt="Logo">
+                    <h1 class="text-xl font-bold text-gray-900">Gate Management</h1>
+                </div>
+                
+                <div class="flex items-center space-x-6">
+                    {% if user %}
+                    <a href="/dashboard" class="text-gray-700 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium transition-colors">
+                        <i data-feather="home" class="w-4 h-4 inline mr-1"></i>
+                        Dashboard
+                    </a>
+                    <a href="/visitors" class="text-gray-700 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium transition-colors">
+                        <i data-feather="users" class="w-4 h-4 inline mr-1"></i>
+                        Visitors
+                    </a>
+                    <a href="/vehicles" class="text-gray-700 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium transition-colors">
+                        <i data-feather="truck" class="w-4 h-4 inline mr-1"></i>
+                        Vehicles
+                    </a>
+                    <a href="/qr/scan" class="text-gray-700 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium transition-colors">
+                        <i data-feather="qr-code" class="w-4 h-4 inline mr-1"></i>
+                        Scan QR
+                    </a>
+                    
+                    <!-- User Menu -->
+                    <div class="relative" x-data="{ open: false }">
+                        <button @click="open = !open" class="flex items-center text-gray-700 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium transition-colors">
+                            <i data-feather="user" class="w-4 h-4 mr-2"></i>
+                            <span>{{ user.full_name }}</span>
+                            <i data-feather="chevron-down" class="w-4 h-4 ml-1"></i>
+                        </button>
+                        
+                        <div x-show="open" @click.away="open = false" 
+                             x-transition:enter="transition ease-out duration-200"
+                             x-transition:enter-start="opacity-0 scale-95"
+                             x-transition:enter-end="opacity-1 scale-100"
+                             x-transition:leave="transition ease-in duration-75"
+                             x-transition:leave-start="opacity-1 scale-100"
+                             x-transition:leave-end="opacity-0 scale-95"
+                             class="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-50">
+                            
+                            <a href="/auth/me" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                                <i data-feather="settings" class="w-4 h-4 inline mr-2"></i>
+                                Profile
+                            </a>
+                            
+                            {% if user.role == 'admin' %}
+                            <a href="/admin" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                                <i data-feather="shield" class="w-4 h-4 inline mr-2"></i>
+                                Admin Panel
+                            </a>
+                            {% endif %}
+                            
+                            <hr class="my-1">
+                            
+                            <button onclick="logout()" class="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50">
+                                <i data-feather="log-out" class="w-4 h-4 inline mr-2"></i>
+                                Logout
+                            </button>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </nav>
+    
+    <!-- Main Content -->
+    <main class="{% if user %}mobile-padding{% endif %}">
+        {% block content %}{% endblock %}
+    </main>
+    
+    <!-- Mobile Navigation (Bottom Tab Bar) -->
+    {% if user %}
+    <nav class="mobile-nav desktop-hidden">
+        <div class="flex justify-around items-center py-2">
+            <a href="/dashboard" class="nav-item {% if request.url.path == '/dashboard' or request.url.path == '/' %}active{% endif %}">
+                <i data-feather="home" class="w-5 h-5"></i>
+                <span class="text-xs mt-1">Home</span>
+            </a>
+            
+            <a href="/visitors" class="nav-item {% if '/visitors' in request.url.path %}active{% endif %}">
+                <i data-feather="users" class="w-5 h-5"></i>
+                <span class="text-xs mt-1">Visitors</span>
+            </a>
+            
+            <a href="/qr/scan" class="nav-item {% if '/qr' in request.url.path %}active{% endif %}">
+                <i data-feather="qr-code" class="w-6 h-6"></i>
+                <span class="text-xs mt-1">Scan</span>
+            </a>
+            
+            <a href="/vehicles" class="nav-item {% if '/vehicles' in request.url.path %}active{% endif %}">
+                <i data-feather="truck" class="w-5 h-5"></i>
+                <span class="text-xs mt-1">Vehicles</span>
+            </a>
+            
+            <a href="/profile" class="nav-item {% if '/profile' in request.url.path %}active{% endif %}">
+                <i data-feather="user" class="w-5 h-5"></i>
+                <span class="text-xs mt-1">Profile</span>
+            </a>
+        </div>
+    </nav>
+    {% endif %}
+    
+    <!-- Loading Overlay -->
+    <div id="loading-overlay" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+        <div class="bg-white rounded-lg p-6 flex items-center space-x-3">
+            <div class="loading-spinner w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full"></div>
+            <span class="text-gray-700">Loading...</span>
+        </div>
+    </div>
+    
+    <!-- Notification Toast -->
+    <div id="notification-toast" class="fixed top-4 right-4 z-50 hidden">
+        <div class="bg-white rounded-lg shadow-lg border p-4 min-w-64 max-w-sm">
+            <div class="flex items-start">
+                <div id="toast-icon" class="mr-3 mt-0.5"></div>
+                <div class="flex-1">
+                    <h4 id="toast-title" class="font-medium text-gray-900"></h4>
+                    <p id="toast-message" class="text-sm text-gray-600 mt-1"></p>
+                </div>
+                <button onclick="hideNotification()" class="ml-2 text-gray-400 hover:text-gray-600">
+                    <i data-feather="x" class="w-4 h-4"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Alpine.js for interactions -->
+    <script src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
+    
+    <!-- Core JavaScript -->
+    <script src="/static/js/app.js"></script>
+    
+    <!-- Initialize Feather Icons -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            feather.replace();
+        });
+    </script>
+    
+    {% block extra_scripts %}{% endblock %}
+</body>
+</html>

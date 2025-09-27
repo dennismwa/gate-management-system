@@ -1,0 +1,880 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+    <!-- Header -->
+    <div class="mb-8">
+        <div class="flex items-center justify-between">
+            <div>
+                <h1 class="text-3xl font-bold text-gray-900">QR Code Scanner</h1>
+                <p class="text-gray-600 mt-1">Scan QR codes for quick check-in/check-out</p>
+            </div>
+            
+            <div class="flex items-center space-x-3">
+                <button onclick="toggleScanner()" id="toggle-btn"
+                        class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                    <i data-feather="camera" class="w-4 h-4 mr-2"></i>
+                    <span id="toggle-text">Start Scanner</span>
+                </button>
+                
+                <button onclick="switchCamera()" id="switch-camera-btn" 
+                        class="hidden inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                    <i data-feather="rotate-cw" class="w-4 h-4 mr-2"></i>
+                    Switch Camera
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Scanner Status -->
+    <div id="scanner-status" class="mb-6">
+        <div class="bg-yellow-50 border border-yellow-200 rounded-md p-4">
+            <div class="flex">
+                <div class="flex-shrink-0">
+                    <i data-feather="info" class="h-5 w-5 text-yellow-400"></i>
+                </div>
+                <div class="ml-3">
+                    <h3 class="text-sm font-medium text-yellow-800">
+                        Scanner Ready
+                    </h3>
+                    <div class="mt-2 text-sm text-yellow-700">
+                        <p>Click "Start Scanner" to begin scanning QR codes. Make sure to allow camera permissions.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Scanner Interface -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <!-- Camera Section -->
+        <div class="order-2 lg:order-1">
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                <h3 class="text-lg font-medium text-gray-900 mb-4">Camera View</h3>
+                
+                <!-- Scanner Container -->
+                <div id="scanner-container" class="relative bg-gray-900 rounded-lg overflow-hidden" style="aspect-ratio: 4/3;">
+                    <!-- Video Element -->
+                    <video id="scanner-video" 
+                           class="w-full h-full object-cover hidden"
+                           autoplay 
+                           muted 
+                           playsinline></video>
+                    
+                    <!-- Scanner Overlay -->
+                    <div id="scanner-overlay" class="absolute inset-0 hidden">
+                        <!-- Corner indicators -->
+                        <div class="absolute top-4 left-4 w-8 h-8 border-t-4 border-l-4 border-blue-500"></div>
+                        <div class="absolute top-4 right-4 w-8 h-8 border-t-4 border-r-4 border-blue-500"></div>
+                        <div class="absolute bottom-4 left-4 w-8 h-8 border-b-4 border-l-4 border-blue-500"></div>
+                        <div class="absolute bottom-4 right-4 w-8 h-8 border-b-4 border-r-4 border-blue-500"></div>
+                        
+                        <!-- Center target -->
+                        <div class="absolute inset-0 flex items-center justify-center">
+                            <div class="w-48 h-48 border-2 border-blue-500 border-dashed rounded-lg flex items-center justify-center">
+                                <span class="text-white text-sm font-medium bg-blue-500 px-3 py-1 rounded-full">
+                                    Align QR Code
+                                </span>
+                            </div>
+                        </div>
+                        
+                        <!-- Scanning line animation -->
+                        <div id="scan-line" class="absolute left-0 right-0 h-0.5 bg-blue-500 opacity-75 scanning-line hidden"></div>
+                    </div>
+                    
+                    <!-- Placeholder when not active -->
+                    <div id="scanner-placeholder" class="absolute inset-0 flex items-center justify-center">
+                        <div class="text-center text-white">
+                            <i data-feather="camera-off" class="w-16 h-16 mx-auto mb-4 text-gray-400"></i>
+                            <p class="text-gray-400">Camera not active</p>
+                            <p class="text-sm text-gray-500 mt-2">Click "Start Scanner" to begin</p>
+                        </div>
+                    </div>
+                    
+                    <!-- Canvas for QR detection (hidden) -->
+                    <canvas id="scanner-canvas" class="hidden"></canvas>
+                </div>
+                
+                <!-- Scanner Controls -->
+                <div class="mt-4 flex items-center justify-between">
+                    <div class="text-sm text-gray-600">
+                        <span id="fps-counter" class="hidden">FPS: <span id="fps-value">0</span></span>
+                    </div>
+                    
+                    <div class="flex items-center space-x-3">
+                        <button onclick="captureManually()" id="capture-btn"
+                                class="hidden inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                            <i data-feather="camera" class="w-4 h-4 mr-2"></i>
+                            Capture
+                        </button>
+                        
+                        <button onclick="toggleFlashlight()" id="flashlight-btn"
+                                class="hidden inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                            <i data-feather="zap" class="w-4 h-4 mr-2"></i>
+                            Flash
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Manual Entry -->
+            <div class="mt-6 bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                <h3 class="text-lg font-medium text-gray-900 mb-4">Manual Entry</h3>
+                <div class="space-y-4">
+                    <div>
+                        <label for="manual-qr-input" class="block text-sm font-medium text-gray-700 mb-2">
+                            Enter QR Code Data
+                        </label>
+                        <textarea id="manual-qr-input" 
+                                  class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                                  rows="3"
+                                  placeholder="Paste QR code data here..."></textarea>
+                    </div>
+                    <button onclick="processManualEntry()" 
+                            class="w-full inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-gray-600 hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500">
+                        <i data-feather="type" class="w-4 h-4 mr-2"></i>
+                        Process Manual Entry
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Results Section -->
+        <div class="order-1 lg:order-2">
+            <!-- Recent Scans -->
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-lg font-medium text-gray-900">Recent Scans</h3>
+                    <button onclick="clearHistory()" 
+                            class="text-sm text-gray-500 hover:text-gray-700">
+                        Clear History
+                    </button>
+                </div>
+                
+                <div id="scan-history" class="space-y-3">
+                    <div class="text-center py-8 text-gray-500">
+                        <i data-feather="clock" class="w-8 h-8 mx-auto mb-2 text-gray-300"></i>
+                        <p class="text-sm">No recent scans</p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Location Selection -->
+            {% if user.role == 'admin' %}
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
+                <h3 class="text-lg font-medium text-gray-900 mb-4">Scan Location</h3>
+                <select id="scan-location" 
+                        class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                    {% for location in locations %}
+                    <option value="{{ location.id }}" 
+                            {% if user.location_id == location.id %}selected{% endif %}>
+                        {{ location.name }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            {% endif %}
+            
+            <!-- Scanner Statistics -->
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                <h3 class="text-lg font-medium text-gray-900 mb-4">Session Statistics</h3>
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="text-center">
+                        <div class="text-2xl font-bold text-blue-600" id="total-scans">0</div>
+                        <div class="text-sm text-gray-500">Total Scans</div>
+                    </div>
+                    <div class="text-center">
+                        <div class="text-2xl font-bold text-green-600" id="successful-scans">0</div>
+                        <div class="text-sm text-gray-500">Successful</div>
+                    </div>
+                    <div class="text-center">
+                        <div class="text-2xl font-bold text-orange-600" id="check-ins">0</div>
+                        <div class="text-sm text-gray-500">Check-ins</div>
+                    </div>
+                    <div class="text-center">
+                        <div class="text-2xl font-bold text-purple-600" id="check-outs">0</div>
+                        <div class="text-sm text-gray-500">Check-outs</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Scan Result Modal -->
+<div id="scan-result-modal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full hidden z-50">
+    <div class="relative top-20 mx-auto p-5 border w-11/12 md:w-1/2 shadow-lg rounded-md bg-white">
+        <div class="mt-3">
+            <!-- Modal Header -->
+            <div class="flex items-center justify-between pb-4 border-b">
+                <h3 class="text-lg font-medium text-gray-900" id="result-modal-title">Scan Result</h3>
+                <button onclick="closeResultModal()" class="text-gray-400 hover:text-gray-600">
+                    <i data-feather="x" class="w-6 h-6"></i>
+                </button>
+            </div>
+            
+            <!-- Modal Content -->
+            <div id="result-modal-content" class="mt-4">
+                <!-- Content will be loaded here -->
+            </div>
+            
+            <!-- Modal Actions -->
+            <div id="result-modal-actions" class="mt-6 flex justify-end space-x-3">
+                <button onclick="closeResultModal()" 
+                        class="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    Close
+                </button>
+                <button onclick="continueScanningFromModal()" 
+                        class="px-4 py-2 border border-transparent rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    Continue Scanning
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<!-- QR Code Library -->
+<script src="https://cdn.jsdelivr.net/npm/qr-scanner@1.4.2/qr-scanner.umd.min.js"></script>
+
+<script>
+// Global variables
+let qrScanner = null;
+let scannerActive = false;
+let currentStream = null;
+let availableCameras = [];
+let currentCameraIndex = 0;
+let scanHistory = [];
+let sessionStats = {
+    totalScans: 0,
+    successfulScans: 0,
+    checkIns: 0,
+    checkOuts: 0
+};
+let fpsCounter = 0;
+let lastFpsUpdate = Date.now();
+
+// Initialize scanner
+document.addEventListener('DOMContentLoaded', function() {
+    initializeScanner();
+    loadScanHistory();
+    
+    // Check camera permissions on load
+    checkCameraPermissions();
+});
+
+// Initialize QR scanner
+async function initializeScanner() {
+    try {
+        // Check if QR scanner is supported
+        if (!QrScanner.hasCamera()) {
+            showScannerError('No camera found on this device');
+            return;
+        }
+        
+        // Get available cameras
+        availableCameras = await QrScanner.listCameras(true);
+        console.log('Available cameras:', availableCameras);
+        
+        // Show switch camera button if multiple cameras
+        if (availableCameras.length > 1) {
+            document.getElementById('switch-camera-btn').classList.remove('hidden');
+        }
+        
+        // Initialize scanner (but don't start yet)
+        const videoElement = document.getElementById('scanner-video');
+        qrScanner = new QrScanner(
+            videoElement,
+            result => handleScanResult(result),
+            {
+                returnDetailedScanResult: true,
+                highlightScanRegion: true,
+                highlightCodeOutline: true,
+                maxScansPerSecond: 5
+            }
+        );
+        
+        updateScannerStatus('ready', 'Scanner initialized and ready');
+        
+    } catch (error) {
+        console.error('Scanner initialization error:', error);
+        showScannerError('Failed to initialize scanner: ' + error.message);
+    }
+}
+
+// Check camera permissions
+async function checkCameraPermissions() {
+    try {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+        stream.getTracks().forEach(track => track.stop());
+        updateScannerStatus('ready', 'Camera permissions granted');
+    } catch (error) {
+        if (error.name === 'NotAllowedError') {
+            updateScannerStatus('error', 'Camera access denied. Please allow camera permissions and refresh the page.');
+        } else if (error.name === 'NotFoundError') {
+            updateScannerStatus('error', 'No camera found on this device');
+        } else {
+            updateScannerStatus('warning', 'Camera permission required. Click "Start Scanner" to grant access.');
+        }
+    }
+}
+
+// Toggle scanner on/off
+async function toggleScanner() {
+    if (scannerActive) {
+        await stopScanner();
+    } else {
+        await startScanner();
+    }
+}
+
+// Start scanner
+async function startScanner() {
+    try {
+        if (!qrScanner) {
+            await initializeScanner();
+            if (!qrScanner) return;
+        }
+        
+        updateScannerStatus('loading', 'Starting camera...');
+        
+        // Start the scanner
+        await qrScanner.start();
+        
+        scannerActive = true;
+        
+        // Update UI
+        document.getElementById('scanner-video').classList.remove('hidden');
+        document.getElementById('scanner-overlay').classList.remove('hidden');
+        document.getElementById('scanner-placeholder').classList.add('hidden');
+        document.getElementById('toggle-text').textContent = 'Stop Scanner';
+        document.getElementById('capture-btn').classList.remove('hidden');
+        document.getElementById('fps-counter').classList.remove('hidden');
+        
+        // Show flashlight button if supported
+        if (qrScanner._qrEnginePromise) {
+            const track = qrScanner.$video.srcObject?.getVideoTracks()[0];
+            if (track?.getCapabilities?.()?.torch) {
+                document.getElementById('flashlight-btn').classList.remove('hidden');
+            }
+        }
+        
+        updateScannerStatus('active', 'Scanner active - position QR code in view');
+        
+        // Start FPS counter
+        startFpsCounter();
+        
+        // Start scanning animation
+        startScanningAnimation();
+        
+    } catch (error) {
+        console.error('Error starting scanner:', error);
+        showScannerError('Failed to start camera: ' + error.message);
+        scannerActive = false;
+    }
+}
+
+// Stop scanner
+async function stopScanner() {
+    try {
+        if (qrScanner) {
+            qrScanner.stop();
+        }
+        
+        scannerActive = false;
+        
+        // Update UI
+        document.getElementById('scanner-video').classList.add('hidden');
+        document.getElementById('scanner-overlay').classList.add('hidden');
+        document.getElementById('scanner-placeholder').classList.remove('hidden');
+        document.getElementById('toggle-text').textContent = 'Start Scanner';
+        document.getElementById('capture-btn').classList.add('hidden');
+        document.getElementById('flashlight-btn').classList.add('hidden');
+        document.getElementById('fps-counter').classList.add('hidden');
+        
+        updateScannerStatus('ready', 'Scanner stopped');
+        
+        // Stop FPS counter
+        stopFpsCounter();
+        
+        // Stop scanning animation
+        stopScanningAnimation();
+        
+    } catch (error) {
+        console.error('Error stopping scanner:', error);
+    }
+}
+
+// Switch camera
+async function switchCamera() {
+    if (!scannerActive || availableCameras.length <= 1) return;
+    
+    try {
+        currentCameraIndex = (currentCameraIndex + 1) % availableCameras.length;
+        await qrScanner.setCamera(availableCameras[currentCameraIndex].id);
+        
+        showNotification('info', 'Camera Switched', `Using ${availableCameras[currentCameraIndex].label}`);
+        
+    } catch (error) {
+        console.error('Error switching camera:', error);
+        showNotification('error', 'Camera Switch Failed', error.message);
+    }
+}
+
+// Toggle flashlight
+async function toggleFlashlight() {
+    try {
+        await qrScanner.toggleFlash();
+        const flashBtn = document.getElementById('flashlight-btn');
+        const icon = flashBtn.querySelector('i');
+        
+        if (qrScanner.isFlashOn()) {
+            icon.setAttribute('data-feather', 'zap-off');
+            flashBtn.classList.add('bg-yellow-100', 'text-yellow-800');
+        } else {
+            icon.setAttribute('data-feather', 'zap');
+            flashBtn.classList.remove('bg-yellow-100', 'text-yellow-800');
+        }
+        
+        feather.replace();
+        
+    } catch (error) {
+        console.error('Error toggling flashlight:', error);
+        showNotification('error', 'Flashlight Error', 'Failed to toggle flashlight');
+    }
+}
+
+// Handle scan result
+async function handleScanResult(result) {
+    const qrData = result.data;
+    
+    // Update statistics
+    sessionStats.totalScans++;
+    updateSessionStats();
+    
+    // Process the QR code
+    await processScanResult(qrData);
+    
+    // Add visual feedback
+    showScanFeedback(true);
+    
+    // Add to history
+    addToScanHistory({
+        data: qrData,
+        timestamp: new Date(),
+        success: true
+    });
+}
+
+// Process scan result
+async function processScanResult(qrData) {
+    try {
+        // Get scan location
+        const locationId = document.getElementById('scan-location')?.value || null;
+        
+        const response = await fetch('/qr/api/scan', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                qr_data: qrData,
+                location_id: locationId ? parseInt(locationId) : null
+            })
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok && data.success) {
+            sessionStats.successfulScans++;
+            
+            if (data.action === 'check_in') {
+                sessionStats.checkIns++;
+            } else if (data.action === 'check_out') {
+                sessionStats.checkOuts++;
+            }
+            
+            updateSessionStats();
+            showScanResultModal(data);
+            
+            // Play success sound
+            playNotificationSound('success');
+            
+        } else {
+            showScanResultModal(data);
+            playNotificationSound('error');
+        }
+        
+    } catch (error) {
+        console.error('Error processing scan:', error);
+        showNotification('error', 'Scan Processing Failed', 'Failed to process QR code scan');
+        playNotificationSound('error');
+    }
+}
+
+// Show scan result modal
+function showScanResultModal(result) {
+    const modal = document.getElementById('scan-result-modal');
+    const title = document.getElementById('result-modal-title');
+    const content = document.getElementById('result-modal-content');
+    
+    if (result.success) {
+        title.textContent = 'Scan Successful';
+        title.className = 'text-lg font-medium text-green-900';
+        
+        const subject = result.visitor || result.vehicle;
+        const subjectType = result.type;
+        
+        content.innerHTML = `
+            <div class="text-center">
+                <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-green-100 mb-4">
+                    <i data-feather="check" class="h-6 w-6 text-green-600"></i>
+                </div>
+                
+                <h3 class="text-lg font-medium text-gray-900 mb-2">${result.message}</h3>
+                
+                <div class="bg-gray-50 rounded-lg p-4 mb-4">
+                    <div class="grid grid-cols-2 gap-4 text-sm">
+                        <div>
+                            <span class="font-medium text-gray-500">${subjectType === 'visitor' ? 'Visitor' : 'Vehicle'}:</span>
+                            <div class="font-medium text-gray-900">
+                                ${subjectType === 'visitor' ? subject.full_name : subject.license_plate}
+                            </div>
+                        </div>
+                        <div>
+                            <span class="font-medium text-gray-500">Action:</span>
+                            <div class="font-medium text-gray-900 capitalize">${result.action.replace('_', ' ')}</div>
+                        </div>
+                        <div>
+                            <span class="font-medium text-gray-500">Time:</span>
+                            <div class="font-medium text-gray-900">${formatDateTime(new Date())}</div>
+                        </div>
+                        <div>
+                            <span class="font-medium text-gray-500">Status:</span>
+                            <div class="font-medium text-gray-900 capitalize">${subject.status.replace('_', ' ')}</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    } else {
+        title.textContent = 'Scan Failed';
+        title.className = 'text-lg font-medium text-red-900';
+        
+        content.innerHTML = `
+            <div class="text-center">
+                <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100 mb-4">
+                    <i data-feather="x" class="h-6 w-6 text-red-600"></i>
+                </div>
+                
+                <h3 class="text-lg font-medium text-gray-900 mb-2">Scan Failed</h3>
+                <p class="text-gray-600 mb-4">${result.message || 'Invalid or expired QR code'}</p>
+            </div>
+        `;
+    }
+    
+    modal.classList.remove('hidden');
+    feather.replace();
+    
+    // Auto-close after 3 seconds for successful scans
+    if (result.success) {
+        setTimeout(() => {
+            closeResultModal();
+        }, 3000);
+    }
+}
+
+// Close result modal
+function closeResultModal() {
+    document.getElementById('scan-result-modal').classList.add('hidden');
+}
+
+// Continue scanning from modal
+function continueScanningFromModal() {
+    closeResultModal();
+    if (!scannerActive) {
+        startScanner();
+    }
+}
+
+// Manual entry processing
+async function processManualEntry() {
+    const manualInput = document.getElementById('manual-qr-input');
+    const qrData = manualInput.value.trim();
+    
+    if (!qrData) {
+        showNotification('warning', 'No Data', 'Please enter QR code data');
+        return;
+    }
+    
+    await processScanResult(qrData);
+    manualInput.value = '';
+}
+
+// Update scanner status
+function updateScannerStatus(type, message) {
+    const statusDiv = document.getElementById('scanner-status');
+    const iconClass = {
+        'ready': 'text-yellow-400',
+        'active': 'text-green-400',
+        'loading': 'text-blue-400',
+        'error': 'text-red-400',
+        'warning': 'text-yellow-400'
+    }[type] || 'text-gray-400';
+    
+    const bgClass = {
+        'ready': 'bg-yellow-50 border-yellow-200',
+        'active': 'bg-green-50 border-green-200',
+        'loading': 'bg-blue-50 border-blue-200',
+        'error': 'bg-red-50 border-red-200',
+        'warning': 'bg-yellow-50 border-yellow-200'
+    }[type] || 'bg-gray-50 border-gray-200';
+    
+    const textClass = {
+        'ready': 'text-yellow-800',
+        'active': 'text-green-800',
+        'loading': 'text-blue-800',
+        'error': 'text-red-800',
+        'warning': 'text-yellow-800'
+    }[type] || 'text-gray-800';
+    
+    statusDiv.innerHTML = `
+        <div class="${bgClass} border rounded-md p-4">
+            <div class="flex">
+                <div class="flex-shrink-0">
+                    <i data-feather="info" class="h-5 w-5 ${iconClass}"></i>
+                </div>
+                <div class="ml-3">
+                    <h3 class="text-sm font-medium ${textClass}">
+                        ${type.charAt(0).toUpperCase() + type.slice(1)}
+                    </h3>
+                    <div class="mt-2 text-sm ${textClass.replace('800', '700')}">
+                        <p>${message}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    feather.replace();
+}
+
+// Show scanner error
+function showScannerError(message) {
+    updateScannerStatus('error', message);
+    showNotification('error', 'Scanner Error', message);
+}
+
+// Update session statistics
+function updateSessionStats() {
+    document.getElementById('total-scans').textContent = sessionStats.totalScans;
+    document.getElementById('successful-scans').textContent = sessionStats.successfulScans;
+    document.getElementById('check-ins').textContent = sessionStats.checkIns;
+    document.getElementById('check-outs').textContent = sessionStats.checkOuts;
+}
+
+// Add to scan history
+function addToScanHistory(scan) {
+    scanHistory.unshift({
+        ...scan,
+        id: generateId()
+    });
+    
+    // Keep only last 10 scans
+    if (scanHistory.length > 10) {
+        scanHistory = scanHistory.slice(0, 10);
+    }
+    
+    updateScanHistoryDisplay();
+    saveScanHistory();
+}
+
+// Update scan history display
+function updateScanHistoryDisplay() {
+    const historyDiv = document.getElementById('scan-history');
+    
+    if (scanHistory.length === 0) {
+        historyDiv.innerHTML = `
+            <div class="text-center py-8 text-gray-500">
+                <i data-feather="clock" class="w-8 h-8 mx-auto mb-2 text-gray-300"></i>
+                <p class="text-sm">No recent scans</p>
+            </div>
+        `;
+        feather.replace();
+        return;
+    }
+    
+    historyDiv.innerHTML = scanHistory.map(scan => `
+        <div class="flex items-start space-x-3 p-3 bg-gray-50 rounded-lg">
+            <div class="flex-shrink-0">
+                <div class="w-8 h-8 rounded-full flex items-center justify-center ${scan.success ? 'bg-green-100' : 'bg-red-100'}">
+                    <i data-feather="${scan.success ? 'check' : 'x'}" class="w-4 h-4 ${scan.success ? 'text-green-600' : 'text-red-600'}"></i>
+                </div>
+            </div>
+            <div class="flex-1 min-w-0">
+                <p class="text-sm font-medium text-gray-900 truncate">${scan.success ? 'Successful scan' : 'Failed scan'}</p>
+                <p class="text-xs text-gray-500">${formatDateTime(scan.timestamp)}</p>
+            </div>
+        </div>
+    `).join('');
+    
+    feather.replace();
+}
+
+// Clear scan history
+function clearHistory() {
+    scanHistory = [];
+    updateScanHistoryDisplay();
+    saveScanHistory();
+    showNotification('info', 'History Cleared', 'Scan history has been cleared');
+}
+
+// Save scan history to localStorage
+function saveScanHistory() {
+    try {
+        localStorage.setItem('qr_scan_history', JSON.stringify(scanHistory));
+    } catch (error) {
+        console.error('Error saving scan history:', error);
+    }
+}
+
+// Load scan history from localStorage
+function loadScanHistory() {
+    try {
+        const saved = localStorage.getItem('qr_scan_history');
+        if (saved) {
+            scanHistory = JSON.parse(saved);
+            updateScanHistoryDisplay();
+        }
+    } catch (error) {
+        console.error('Error loading scan history:', error);
+    }
+}
+
+// Start FPS counter
+function startFpsCounter() {
+    const updateFps = () => {
+        if (!scannerActive) return;
+        
+        fpsCounter++;
+        const now = Date.now();
+        
+        if (now - lastFpsUpdate >= 1000) {
+            document.getElementById('fps-value').textContent = fpsCounter;
+            fpsCounter = 0;
+            lastFpsUpdate = now;
+        }
+        
+        requestAnimationFrame(updateFps);
+    };
+    
+    updateFps();
+}
+
+// Stop FPS counter
+function stopFpsCounter() {
+    fpsCounter = 0;
+    document.getElementById('fps-value').textContent = '0';
+}
+
+// Start scanning animation
+function startScanningAnimation() {
+    const scanLine = document.getElementById('scan-line');
+    scanLine.classList.remove('hidden');
+}
+
+// Stop scanning animation
+function stopScanningAnimation() {
+    const scanLine = document.getElementById('scan-line');
+    scanLine.classList.add('hidden');
+}
+
+// Show scan feedback
+function showScanFeedback(success) {
+    const overlay = document.getElementById('scanner-overlay');
+    
+    if (success) {
+        overlay.classList.add('bg-green-500', 'bg-opacity-20');
+        setTimeout(() => {
+            overlay.classList.remove('bg-green-500', 'bg-opacity-20');
+        }, 200);
+    } else {
+        overlay.classList.add('bg-red-500', 'bg-opacity-20');
+        setTimeout(() => {
+            overlay.classList.remove('bg-red-500', 'bg-opacity-20');
+        }, 200);
+    }
+}
+
+// Play notification sound
+function playNotificationSound(type) {
+    try {
+        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        const oscillator = audioContext.createOscillator();
+        const gainNode = audioContext.createGain();
+        
+        oscillator.connect(gainNode);
+        gainNode.connect(audioContext.destination);
+        
+        if (type === 'success') {
+            oscillator.frequency.setValueAtTime(800, audioContext.currentTime);
+            oscillator.frequency.setValueAtTime(1000, audioContext.currentTime + 0.1);
+        } else {
+            oscillator.frequency.setValueAtTime(400, audioContext.currentTime);
+            oscillator.frequency.setValueAtTime(200, audioContext.currentTime + 0.1);
+        }
+        
+        gainNode.gain.setValueAtTime(0.1, audioContext.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.2);
+        
+        oscillator.start(audioContext.currentTime);
+        oscillator.stop(audioContext.currentTime + 0.2);
+    } catch (error) {
+        // Sound not critical, fail silently
+    }
+}
+
+// Cleanup on page unload
+window.addEventListener('beforeunload', function() {
+    if (scannerActive) {
+        stopScanner();
+    }
+});
+
+// Keyboard shortcuts
+document.addEventListener('keydown', function(e) {
+    if (e.key === ' ') { // Spacebar to toggle scanner
+        e.preventDefault();
+        toggleScanner();
+    } else if (e.key === 'c' && (e.ctrlKey || e.metaKey)) { // Ctrl/Cmd + C to capture
+        e.preventDefault();
+        if (scannerActive) {
+            captureManually();
+        }
+    } else if (e.key === 'Escape') { // Escape to close modal
+        const modal = document.getElementById('scan-result-modal');
+        if (!modal.classList.contains('hidden')) {
+            closeResultModal();
+        }
+    }
+});
+</script>
+
+<!-- Custom CSS for scanning animation -->
+<style>
+.scanning-line {
+    animation: scan 2s linear infinite;
+}
+
+@keyframes scan {
+    0% { top: 20%; }
+    50% { top: 80%; }
+    100% { top: 20%; }
+}
+
+#scanner-video {
+    transform: scaleX(-1); /* Mirror the video for better UX */
+}
+</style>
+{% endblock %}

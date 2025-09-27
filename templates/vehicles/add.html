@@ -1,0 +1,214 @@
+<!-- templates/vehicles/add.html -->
+{% extends "base.html" %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+    <!-- Header -->
+    <div class="mb-8">
+        <div class="flex items-center justify-between">
+            <div>
+                <h1 class="text-3xl font-bold text-gray-900">Register New Vehicle</h1>
+                <p class="text-gray-600 mt-1">Register a new vehicle for access control</p>
+            </div>
+            
+            <a href="/vehicles" 
+               class="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                <i data-feather="arrow-left" class="w-4 h-4 mr-2"></i>
+                Back to Vehicles
+            </a>
+        </div>
+    </div>
+    
+    <!-- Form -->
+    <div class="bg-white shadow-sm rounded-lg">
+        <form id="vehicle-form" class="space-y-6 p-6">
+            <!-- Vehicle Information Section -->
+            <div>
+                <h3 class="text-lg font-medium text-gray-900 mb-4">Vehicle Information</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- License Plate -->
+                    <div>
+                        <label for="license_plate" class="block text-sm font-medium text-gray-700 mb-2">
+                            License Plate <span class="text-red-500">*</span>
+                        </label>
+                        <input type="text" id="license_plate" name="license_plate" required
+                               class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 uppercase"
+                               placeholder="ABC 123X">
+                        <div class="mt-1 text-sm text-red-600 hidden" id="license_plate_error"></div>
+                    </div>
+                    
+                    <!-- Vehicle Type -->
+                    <div>
+                        <label for="vehicle_type" class="block text-sm font-medium text-gray-700 mb-2">
+                            Vehicle Type <span class="text-red-500">*</span>
+                        </label>
+                        <select id="vehicle_type" name="vehicle_type" required
+                                class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                            <option value="">Select vehicle type</option>
+                            {% for vtype in vehicle_types %}
+                            <option value="{{ vtype.value }}">{{ vtype.label }}</option>
+                            {% endfor %}
+                        </select>
+                        <div class="mt-1 text-sm text-red-600 hidden" id="vehicle_type_error"></div>
+                    </div>
+                    
+                    <!-- Purpose -->
+                    <div>
+                        <label for="purpose" class="block text-sm font-medium text-gray-700 mb-2">
+                            Purpose <span class="text-red-500">*</span>
+                        </label>
+                        <select id="purpose" name="purpose" required
+                                class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                            <option value="">Select purpose</option>
+                            {% for purpose in vehicle_purposes %}
+                            <option value="{{ purpose.value }}">{{ purpose.label }}</option>
+                            {% endfor %}
+                        </select>
+                        <div class="mt-1 text-sm text-red-600 hidden" id="purpose_error"></div>
+                    </div>
+                    
+                    <!-- Location -->
+                    <div>
+                        <label for="location_id" class="block text-sm font-medium text-gray-700 mb-2">
+                            Location <span class="text-red-500">*</span>
+                        </label>
+                        <select id="location_id" name="location_id" required
+                                class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                            <option value="">Select location</option>
+                            {% for location in locations %}
+                            <option value="{{ location.id }}" 
+                                    {% if user.location_id == location.id %}selected{% endif %}>
+                                {{ location.name }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                        <div class="mt-1 text-sm text-red-600 hidden" id="location_id_error"></div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Driver Information Section -->
+            <div class="border-t border-gray-200 pt-6">
+                <h3 class="text-lg font-medium text-gray-900 mb-4">Driver Information</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- Driver Name -->
+                    <div>
+                        <label for="driver_name" class="block text-sm font-medium text-gray-700 mb-2">
+                            Driver Name <span class="text-red-500">*</span>
+                        </label>
+                        <input type="text" id="driver_name" name="driver_name" required
+                               class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                               placeholder="Enter driver's full name">
+                        <div class="mt-1 text-sm text-red-600 hidden" id="driver_name_error"></div>
+                    </div>
+                    
+                    <!-- Driver Phone -->
+                    <div>
+                        <label for="driver_phone" class="block text-sm font-medium text-gray-700 mb-2">
+                            Driver Phone
+                        </label>
+                        <input type="tel" id="driver_phone" name="driver_phone"
+                               class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                               placeholder="+254 700 000 000">
+                        <div class="mt-1 text-sm text-red-600 hidden" id="driver_phone_error"></div>
+                    </div>
+                    
+                    <!-- Driver ID -->
+                    <div>
+                        <label for="driver_id" class="block text-sm font-medium text-gray-700 mb-2">
+                            Driver ID Number
+                        </label>
+                        <input type="text" id="driver_id" name="driver_id"
+                               class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                               placeholder="National ID or License">
+                        <div class="mt-1 text-sm text-red-600 hidden" id="driver_id_error"></div>
+                    </div>
+                    
+                    <!-- Company -->
+                    <div>
+                        <label for="company" class="block text-sm font-medium text-gray-700 mb-2">
+                            Company/Organization
+                        </label>
+                        <input type="text" id="company" name="company"
+                               class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                               placeholder="Company name (optional)">
+                        <div class="mt-1 text-sm text-red-600 hidden" id="company_error"></div>
+                    </div>
+                </div>
+                
+                <!-- Notes -->
+                <div class="mt-6">
+                    <label for="notes" class="block text-sm font-medium text-gray-700 mb-2">
+                        Additional Notes
+                    </label>
+                    <textarea id="notes" name="notes" rows="3"
+                              class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                              placeholder="Any additional notes about the vehicle or visit..."></textarea>
+                    <div class="mt-1 text-sm text-red-600 hidden" id="notes_error"></div>
+                </div>
+            </div>
+            
+            <!-- Quick Actions -->
+            <div class="border-t border-gray-200 pt-6">
+                <div class="flex items-center space-x-4">
+                    <label class="flex items-center">
+                        <input type="checkbox" id="auto_check_in" 
+                               class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
+                        <span class="ml-2 text-sm text-gray-700">Automatically check in after registration</span>
+                    </label>
+                    
+                    <label class="flex items-center">
+                        <input type="checkbox" id="generate_qr" checked
+                               class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
+                        <span class="ml-2 text-sm text-gray-700">Generate QR code sticker</span>
+                    </label>
+                </div>
+            </div>
+            
+            <!-- Submit Buttons -->
+            <div class="border-t border-gray-200 pt-6">
+                <div class="flex justify-end space-x-3">
+                    <a href="/vehicles" 
+                       class="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                        Cancel
+                    </a>
+                    
+                    <button type="submit" id="submit-btn"
+                            class="px-6 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed">
+                        <span id="submit-text">Register Vehicle</span>
+                        <div id="submit-spinner" class="hidden inline-flex items-center">
+                            <div class="loading-spinner w-4 h-4 border-2 border-white border-t-transparent rounded-full mr-2"></div>
+                            Processing...
+                        </div>
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Success Modal (similar to visitor success modal) -->
+<div id="success-modal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full hidden z-50">
+    <!-- Modal content similar to visitor add template -->
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+// Vehicle form JavaScript - similar to visitor form but adapted for vehicles
+document.addEventListener('DOMContentLoaded', function() {
+    setupFormValidation();
+    setupLicensePlateFormatting();
+    document.getElementById('driver_name').focus();
+});
+
+function setupLicensePlateFormatting() {
+    const licensePlateField = document.getElementById('license_plate');
+    licensePlateField.addEventListener('input', function(e) {
+        e.target.value = e.target.value.toUpperCase();
+    });
+}
+
+// Additional vehicle-specific form handling...
+</script>
+{% endblock %}

@@ -1,0 +1,443 @@
+<!-- templates/vehicles/index.html -->
+{% extends "base.html" %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+    <!-- Header -->
+    <div class="mb-8">
+        <div class="flex items-center justify-between flex-wrap gap-4">
+            <div>
+                <h1 class="text-3xl font-bold text-gray-900">Vehicle Management</h1>
+                <p class="text-gray-600 mt-1">Manage vehicle access and tracking</p>
+            </div>
+            
+            <div class="flex items-center space-x-3">
+                <button onclick="refreshVehicles()" 
+                        class="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors">
+                    <i data-feather="refresh-cw" class="w-4 h-4 mr-2"></i>
+                    Refresh
+                </button>
+                
+                <a href="/vehicles/add" 
+                   class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white btn-primary focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                    <i data-feather="plus-circle" class="w-4 h-4 mr-2"></i>
+                    Add Vehicle
+                </a>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Quick Stats -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+        <div class="stat-card rounded-xl p-6">
+            <div class="flex items-center">
+                <div class="flex-shrink-0">
+                    <div class="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
+                        <i data-feather="truck" class="w-5 h-5 text-green-600"></i>
+                    </div>
+                </div>
+                <div class="ml-4">
+                    <p class="text-sm font-medium text-gray-600">Inside</p>
+                    <p id="checked-in-count" class="text-xl font-bold text-gray-900">0</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="stat-card rounded-xl p-6">
+            <div class="flex items-center">
+                <div class="flex-shrink-0">
+                    <div class="w-10 h-10 bg-yellow-100 rounded-lg flex items-center justify-center">
+                        <i data-feather="clock" class="w-5 h-5 text-yellow-600"></i>
+                    </div>
+                </div>
+                <div class="ml-4">
+                    <p class="text-sm font-medium text-gray-600">Pending</p>
+                    <p id="pending-count" class="text-xl font-bold text-gray-900">0</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="stat-card rounded-xl p-6">
+            <div class="flex items-center">
+                <div class="flex-shrink-0">
+                    <div class="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                        <i data-feather="calendar" class="w-5 h-5 text-blue-600"></i>
+                    </div>
+                </div>
+                <div class="ml-4">
+                    <p class="text-sm font-medium text-gray-600">Today</p>
+                    <p id="today-count" class="text-xl font-bold text-gray-900">0</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="stat-card rounded-xl p-6">
+            <div class="flex items-center">
+                <div class="flex-shrink-0">
+                    <div class="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
+                        <i data-feather="trending-up" class="w-5 h-5 text-purple-600"></i>
+                    </div>
+                </div>
+                <div class="ml-4">
+                    <p class="text-sm font-medium text-gray-600">This Week</p>
+                    <p id="week-count" class="text-xl font-bold text-gray-900">0</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Filters and Search -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-8">
+        <div class="grid grid-cols-1 md:grid-cols-5 gap-4">
+            <!-- Search -->
+            <div class="md:col-span-2">
+                <label for="search-input" class="block text-sm font-medium text-gray-700 mb-2">Search</label>
+                <div class="relative">
+                    <input type="text" id="search-input" 
+                           class="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                           placeholder="Search by license plate, driver...">
+                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <i data-feather="search" class="h-5 w-5 text-gray-400"></i>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Status Filter -->
+            <div>
+                <label for="status-filter" class="block text-sm font-medium text-gray-700 mb-2">Status</label>
+                <select id="status-filter" 
+                        class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                    <option value="">All Statuses</option>
+                    <option value="pending">Pending</option>
+                    <option value="checked_in">Inside</option>
+                    <option value="checked_out">Left</option>
+                    <option value="expired">Expired</option>
+                </select>
+            </div>
+            
+            <!-- Location Filter -->
+            {% if user.role == 'admin' %}
+            <div>
+                <label for="location-filter" class="block text-sm font-medium text-gray-700 mb-2">Location</label>
+                <select id="location-filter" 
+                        class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                    <option value="">All Locations</option>
+                    {% for location in locations %}
+                    <option value="{{ location.id }}">{{ location.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            {% endif %}
+            
+            <!-- Actions -->
+            <div class="flex items-end space-x-2">
+                <button onclick="applyFilters()" 
+                        class="flex-1 bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors">
+                    <i data-feather="filter" class="w-4 h-4 inline mr-1"></i>
+                    Filter
+                </button>
+                <button onclick="clearFilters()" 
+                        class="px-3 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors">
+                    <i data-feather="x" class="w-4 h-4"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Vehicles Table -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200">
+        <div class="px-6 py-4 border-b border-gray-200">
+            <div class="flex items-center justify-between">
+                <h3 class="text-lg font-medium text-gray-900">Vehicles</h3>
+                
+                <!-- Bulk Actions -->
+                <div id="bulk-actions" class="hidden flex items-center space-x-2">
+                    <span class="text-sm text-gray-600">
+                        <span id="selected-count">0</span> selected
+                    </span>
+                    <button onclick="bulkCheckOut()" 
+                            class="inline-flex items-center px-3 py-1 border border-transparent text-sm font-medium rounded text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500">
+                        <i data-feather="log-out" class="w-4 h-4 mr-1"></i>
+                        Check Out
+                    </button>
+                    <button onclick="clearSelection()" 
+                            class="inline-flex items-center px-3 py-1 border border-gray-300 text-sm font-medium rounded text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <i data-feather="x" class="w-4 h-4 mr-1"></i>
+                        Clear
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Table -->
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-6 py-3 text-left">
+                            <input type="checkbox" id="select-all" 
+                                   class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
+                        </th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Vehicle
+                        </th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Driver
+                        </th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Type/Purpose
+                        </th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Company
+                        </th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Status
+                        </th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Time
+                        </th>
+                        <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Actions
+                        </th>
+                    </tr>
+                </thead>
+                <tbody id="vehicles-table-body" class="bg-white divide-y divide-gray-200">
+                    <!-- Loading state -->
+                    <tr id="loading-row">
+                        <td colspan="8" class="px-6 py-12 text-center">
+                            <div class="flex items-center justify-center">
+                                <div class="loading-spinner w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full mr-3"></div>
+                                <span class="text-gray-500">Loading vehicles...</span>
+                            </div>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        
+        <!-- Pagination -->
+        <div id="pagination" class="px-6 py-3 border-t border-gray-200 bg-gray-50">
+            <div class="flex items-center justify-between">
+                <div class="text-sm text-gray-700">
+                    Showing <span id="showing-start">0</span> to <span id="showing-end">0</span> of <span id="total-count">0</span> vehicles
+                </div>
+                <div class="flex items-center space-x-2">
+                    <button id="prev-page" onclick="changePage(-1)" 
+                            class="px-3 py-1 border border-gray-300 rounded text-gray-500 hover:text-gray-700 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                            disabled>
+                        <i data-feather="chevron-left" class="w-4 h-4"></i>
+                    </button>
+                    <span id="page-info" class="text-sm text-gray-600">Page 1 of 1</span>
+                    <button id="next-page" onclick="changePage(1)" 
+                            class="px-3 py-1 border border-gray-300 rounded text-gray-500 hover:text-gray-700 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                            disabled>
+                        <i data-feather="chevron-right" class="w-4 h-4"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+// Vehicle management JavaScript - similar to visitors but for vehicles
+let currentPage = 1;
+let totalPages = 1;
+let currentFilters = {};
+let selectedVehicles = new Set();
+let vehicles = [];
+
+document.addEventListener('DOMContentLoaded', function() {
+    loadVehicles();
+    loadStats();
+    setupEventListeners();
+    
+    setInterval(() => {
+        if (!document.getElementById('vehicle-modal')?.classList.contains('hidden')) {
+            return;
+        }
+        loadVehicles();
+        loadStats();
+    }, 30000);
+});
+
+function setupEventListeners() {
+    const searchInput = document.getElementById('search-input');
+    let searchTimeout;
+    searchInput.addEventListener('input', function() {
+        clearTimeout(searchTimeout);
+        searchTimeout = setTimeout(() => applyFilters(), 500);
+    });
+    
+    document.getElementById('select-all').addEventListener('change', function() {
+        const checkboxes = document.querySelectorAll('.vehicle-checkbox');
+        checkboxes.forEach(cb => {
+            cb.checked = this.checked;
+            if (this.checked) {
+                selectedVehicles.add(parseInt(cb.value));
+            } else {
+                selectedVehicles.delete(parseInt(cb.value));
+            }
+        });
+        updateBulkActions();
+    });
+}
+
+async function loadVehicles() {
+    try {
+        showLoading(true);
+        const params = new URLSearchParams({
+            page: currentPage,
+            limit: 20,
+            ...currentFilters
+        });
+        
+        const response = await fetch(`/vehicles/api/list?${params}`);
+        const data = await response.json();
+        
+        if (response.ok) {
+            vehicles = data.vehicles;
+            totalPages = data.pages;
+            renderVehiclesTable(vehicles);
+            updatePagination(data);
+        } else {
+            showNotification('error', 'Error', 'Failed to load vehicles');
+        }
+    } catch (error) {
+        console.error('Error loading vehicles:', error);
+        showNotification('error', 'Error', 'Failed to load vehicles');
+    } finally {
+        showLoading(false);
+    }
+}
+
+function renderVehiclesTable(vehicles) {
+    const tbody = document.getElementById('vehicles-table-body');
+    
+    if (vehicles.length === 0) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="8" class="px-6 py-12 text-center">
+                    <div class="flex flex-col items-center">
+                        <i data-feather="truck" class="w-12 h-12 text-gray-300 mb-4"></i>
+                        <h3 class="text-lg font-medium text-gray-900 mb-2">No vehicles found</h3>
+                        <p class="text-gray-500 mb-4">Get started by registering your first vehicle.</p>
+                        <a href="/vehicles/add" 
+                           class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700">
+                            <i data-feather="plus-circle" class="w-4 h-4 mr-2"></i>
+                            Add Vehicle
+                        </a>
+                    </div>
+                </td>
+            </tr>
+        `;
+        feather.replace();
+        return;
+    }
+    
+    tbody.innerHTML = vehicles.map(vehicle => `
+        <tr class="hover:bg-gray-50">
+            <td class="px-6 py-4">
+                <input type="checkbox" class="vehicle-checkbox h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded" 
+                       value="${vehicle.id}" onchange="toggleVehicleSelection(${vehicle.id})">
+            </td>
+            <td class="px-6 py-4">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0 h-10 w-10">
+                        <div class="h-10 w-10 rounded-full bg-green-100 flex items-center justify-center">
+                            <i data-feather="truck" class="w-5 h-5 text-green-600"></i>
+                        </div>
+                    </div>
+                    <div class="ml-4">
+                        <div class="text-sm font-medium text-gray-900">${vehicle.license_plate}</div>
+                        <div class="text-sm text-gray-500">${vehicle.vehicle_type.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}</div>
+                    </div>
+                </div>
+            </td>
+            <td class="px-6 py-4">
+                <div class="text-sm text-gray-900">${vehicle.driver_name}</div>
+                ${vehicle.driver_phone ? `<div class="text-sm text-gray-500">${vehicle.driver_phone}</div>` : ''}
+            </td>
+            <td class="px-6 py-4">
+                <div class="text-sm text-gray-900">${vehicle.vehicle_type.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}</div>
+                <div class="text-sm text-gray-500">${vehicle.purpose.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}</div>
+            </td>
+            <td class="px-6 py-4">
+                <div class="text-sm text-gray-900">${vehicle.company || 'N/A'}</div>
+            </td>
+            <td class="px-6 py-4">
+                ${getStatusBadge(vehicle.status)}
+            </td>
+            <td class="px-6 py-4">
+                <div class="text-sm text-gray-900">${formatDateTime(vehicle.created_at)}</div>
+            </td>
+            <td class="px-6 py-4 text-right">
+                <div class="flex items-center justify-end space-x-2">
+                    ${getActionButtons(vehicle)}
+                </div>
+            </td>
+        </tr>
+    `).join('');
+    
+    feather.replace();
+}
+
+function getStatusBadge(status) {
+    const badges = {
+        'pending': 'bg-yellow-100 text-yellow-800',
+        'checked_in': 'bg-green-100 text-green-800',
+        'checked_out': 'bg-gray-100 text-gray-800',
+        'expired': 'bg-red-100 text-red-800'
+    };
+    
+    const colors = badges[status] || 'bg-gray-100 text-gray-800';
+    const label = status.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase());
+    
+    return `<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${colors}">${label}</span>`;
+}
+
+function getActionButtons(vehicle) {
+    let buttons = [];
+    
+    buttons.push(`
+        <button onclick="viewVehicle(${vehicle.id})" 
+                class="text-blue-600 hover:text-blue-900 text-sm font-medium">
+            View
+        </button>
+    `);
+    
+    if (vehicle.status === 'pending') {
+        buttons.push(`
+            <button onclick="checkInVehicle(${vehicle.id})" 
+                    class="text-green-600 hover:text-green-900 text-sm font-medium">
+                Check In
+            </button>
+        `);
+    } else if (vehicle.status === 'checked_in') {
+        buttons.push(`
+            <button onclick="checkOutVehicle(${vehicle.id})" 
+                    class="text-orange-600 hover:text-orange-900 text-sm font-medium">
+                Check Out
+            </button>
+        `);
+    }
+    
+    if (vehicle.qr_code_id) {
+        buttons.push(`
+            <button onclick="showQRCode(${vehicle.id})" 
+                    class="text-purple-600 hover:text-purple-900 text-sm font-medium">
+                QR Code
+            </button>
+        `);
+    }
+    
+    return buttons.join(' | ');
+}
+
+// Additional vehicle-specific functions would go here...
+// Similar to visitor functions but adapted for vehicles
+</script>
+{% endblock %}
+

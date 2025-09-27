@@ -1,0 +1,853 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+    <!-- Header -->
+    <div class="mb-8">
+        <div class="flex items-center justify-between flex-wrap gap-4">
+            <div>
+                <h1 class="text-3xl font-bold text-gray-900">Visitor Management</h1>
+                <p class="text-gray-600 mt-1">Manage visitor access and check-in/out</p>
+            </div>
+            
+            <div class="flex items-center space-x-3">
+                <button onclick="refreshVisitors()" 
+                        class="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors">
+                    <i data-feather="refresh-cw" class="w-4 h-4 mr-2"></i>
+                    Refresh
+                </button>
+                
+                <a href="/visitors/add" 
+                   class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white btn-primary focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                    <i data-feather="user-plus" class="w-4 h-4 mr-2"></i>
+                    Add Visitor
+                </a>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Quick Stats -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+        <div class="stat-card rounded-xl p-6">
+            <div class="flex items-center">
+                <div class="flex-shrink-0">
+                    <div class="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
+                        <i data-feather="user-check" class="w-5 h-5 text-green-600"></i>
+                    </div>
+                </div>
+                <div class="ml-4">
+                    <p class="text-sm font-medium text-gray-600">Checked In</p>
+                    <p id="checked-in-count" class="text-xl font-bold text-gray-900">0</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="stat-card rounded-xl p-6">
+            <div class="flex items-center">
+                <div class="flex-shrink-0">
+                    <div class="w-10 h-10 bg-yellow-100 rounded-lg flex items-center justify-center">
+                        <i data-feather="clock" class="w-5 h-5 text-yellow-600"></i>
+                    </div>
+                </div>
+                <div class="ml-4">
+                    <p class="text-sm font-medium text-gray-600">Pending</p>
+                    <p id="pending-count" class="text-xl font-bold text-gray-900">0</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="stat-card rounded-xl p-6">
+            <div class="flex items-center">
+                <div class="flex-shrink-0">
+                    <div class="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                        <i data-feather="calendar" class="w-5 h-5 text-blue-600"></i>
+                    </div>
+                </div>
+                <div class="ml-4">
+                    <p class="text-sm font-medium text-gray-600">Today</p>
+                    <p id="today-count" class="text-xl font-bold text-gray-900">0</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="stat-card rounded-xl p-6">
+            <div class="flex items-center">
+                <div class="flex-shrink-0">
+                    <div class="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
+                        <i data-feather="trending-up" class="w-5 h-5 text-purple-600"></i>
+                    </div>
+                </div>
+                <div class="ml-4">
+                    <p class="text-sm font-medium text-gray-600">This Week</p>
+                    <p id="week-count" class="text-xl font-bold text-gray-900">0</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Filters and Search -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-8">
+        <div class="grid grid-cols-1 md:grid-cols-5 gap-4">
+            <!-- Search -->
+            <div class="md:col-span-2">
+                <label for="search-input" class="block text-sm font-medium text-gray-700 mb-2">Search</label>
+                <div class="relative">
+                    <input type="text" id="search-input" 
+                           class="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                           placeholder="Search by name, phone, company...">
+                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <i data-feather="search" class="h-5 w-5 text-gray-400"></i>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Status Filter -->
+            <div>
+                <label for="status-filter" class="block text-sm font-medium text-gray-700 mb-2">Status</label>
+                <select id="status-filter" 
+                        class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                    <option value="">All Statuses</option>
+                    <option value="pending">Pending</option>
+                    <option value="checked_in">Checked In</option>
+                    <option value="checked_out">Checked Out</option>
+                    <option value="expired">Expired</option>
+                </select>
+            </div>
+            
+            <!-- Location Filter -->
+            {% if user.role == 'admin' %}
+            <div>
+                <label for="location-filter" class="block text-sm font-medium text-gray-700 mb-2">Location</label>
+                <select id="location-filter" 
+                        class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                    <option value="">All Locations</option>
+                    {% for location in locations %}
+                    <option value="{{ location.id }}">{{ location.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            {% endif %}
+            
+            <!-- Actions -->
+            <div class="flex items-end space-x-2">
+                <button onclick="applyFilters()" 
+                        class="flex-1 bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors">
+                    <i data-feather="filter" class="w-4 h-4 inline mr-1"></i>
+                    Filter
+                </button>
+                <button onclick="clearFilters()" 
+                        class="px-3 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors">
+                    <i data-feather="x" class="w-4 h-4"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Visitors Table -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200">
+        <div class="px-6 py-4 border-b border-gray-200">
+            <div class="flex items-center justify-between">
+                <h3 class="text-lg font-medium text-gray-900">Visitors</h3>
+                
+                <!-- Bulk Actions -->
+                <div id="bulk-actions" class="hidden flex items-center space-x-2">
+                    <span class="text-sm text-gray-600">
+                        <span id="selected-count">0</span> selected
+                    </span>
+                    <button onclick="bulkCheckOut()" 
+                            class="inline-flex items-center px-3 py-1 border border-transparent text-sm font-medium rounded text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500">
+                        <i data-feather="log-out" class="w-4 h-4 mr-1"></i>
+                        Check Out
+                    </button>
+                    <button onclick="clearSelection()" 
+                            class="inline-flex items-center px-3 py-1 border border-gray-300 text-sm font-medium rounded text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <i data-feather="x" class="w-4 h-4 mr-1"></i>
+                        Clear
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Table -->
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-6 py-3 text-left">
+                            <input type="checkbox" id="select-all" 
+                                   class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
+                        </th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Visitor
+                        </th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Contact
+                        </th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Company
+                        </th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Purpose
+                        </th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Status
+                        </th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Time
+                        </th>
+                        <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Actions
+                        </th>
+                    </tr>
+                </thead>
+                <tbody id="visitors-table-body" class="bg-white divide-y divide-gray-200">
+                    <!-- Loading state -->
+                    <tr id="loading-row">
+                        <td colspan="8" class="px-6 py-12 text-center">
+                            <div class="flex items-center justify-center">
+                                <div class="loading-spinner w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full mr-3"></div>
+                                <span class="text-gray-500">Loading visitors...</span>
+                            </div>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        
+        <!-- Pagination -->
+        <div id="pagination" class="px-6 py-3 border-t border-gray-200 bg-gray-50">
+            <div class="flex items-center justify-between">
+                <div class="text-sm text-gray-700">
+                    Showing <span id="showing-start">0</span> to <span id="showing-end">0</span> of <span id="total-count">0</span> visitors
+                </div>
+                <div class="flex items-center space-x-2">
+                    <button id="prev-page" onclick="changePage(-1)" 
+                            class="px-3 py-1 border border-gray-300 rounded text-gray-500 hover:text-gray-700 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                            disabled>
+                        <i data-feather="chevron-left" class="w-4 h-4"></i>
+                    </button>
+                    <span id="page-info" class="text-sm text-gray-600">Page 1 of 1</span>
+                    <button id="next-page" onclick="changePage(1)" 
+                            class="px-3 py-1 border border-gray-300 rounded text-gray-500 hover:text-gray-700 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                            disabled>
+                        <i data-feather="chevron-right" class="w-4 h-4"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Visitor Details Modal -->
+<div id="visitor-modal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full hidden z-50">
+    <div class="relative top-20 mx-auto p-5 border w-11/12 md:w-3/4 lg:w-1/2 shadow-lg rounded-md bg-white">
+        <div class="mt-3">
+            <!-- Modal Header -->
+            <div class="flex items-center justify-between pb-4 border-b">
+                <h3 class="text-lg font-medium text-gray-900" id="modal-title">Visitor Details</h3>
+                <button onclick="closeModal()" class="text-gray-400 hover:text-gray-600">
+                    <i data-feather="x" class="w-6 h-6"></i>
+                </button>
+            </div>
+            
+            <!-- Modal Content -->
+            <div id="modal-content" class="mt-4">
+                <!-- Content will be loaded here -->
+            </div>
+            
+            <!-- Modal Actions -->
+            <div id="modal-actions" class="mt-6 flex justify-end space-x-3">
+                <button onclick="closeModal()" 
+                        class="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    Close
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- QR Code Modal -->
+<div id="qr-modal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full hidden z-50">
+    <div class="relative top-20 mx-auto p-5 border w-11/12 md:w-1/2 shadow-lg rounded-md bg-white">
+        <div class="mt-3">
+            <div class="flex items-center justify-between pb-4 border-b">
+                <h3 class="text-lg font-medium text-gray-900">QR Code Sticker</h3>
+                <button onclick="closeQRModal()" class="text-gray-400 hover:text-gray-600">
+                    <i data-feather="x" class="w-6 h-6"></i>
+                </button>
+            </div>
+            
+            <div id="qr-content" class="mt-4 text-center">
+                <!-- QR code will be displayed here -->
+            </div>
+            
+            <div class="mt-6 flex justify-end space-x-3">
+                <button onclick="downloadQR()" 
+                        class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <i data-feather="download" class="w-4 h-4 inline mr-2"></i>
+                    Download
+                </button>
+                <button onclick="closeQRModal()" 
+                        class="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    Close
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+// Global variables
+let currentPage = 1;
+let totalPages = 1;
+let currentFilters = {};
+let selectedVisitors = new Set();
+let visitors = [];
+let currentQRData = null;
+
+// Initialize page
+document.addEventListener('DOMContentLoaded', function() {
+    loadVisitors();
+    loadStats();
+    setupEventListeners();
+    
+    // Auto-refresh every 30 seconds
+    setInterval(() => {
+        if (!document.getElementById('visitor-modal').classList.contains('hidden')) {
+            return; // Don't refresh if modal is open
+        }
+        loadVisitors();
+        loadStats();
+    }, 30000);
+});
+
+// Setup event listeners
+function setupEventListeners() {
+    // Search input with debounce
+    const searchInput = document.getElementById('search-input');
+    let searchTimeout;
+    searchInput.addEventListener('input', function() {
+        clearTimeout(searchTimeout);
+        searchTimeout = setTimeout(() => {
+            applyFilters();
+        }, 500);
+    });
+    
+    // Enter key on search
+    searchInput.addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            applyFilters();
+        }
+    });
+    
+    // Select all checkbox
+    document.getElementById('select-all').addEventListener('change', function() {
+        const checkboxes = document.querySelectorAll('.visitor-checkbox');
+        checkboxes.forEach(cb => {
+            cb.checked = this.checked;
+            if (this.checked) {
+                selectedVisitors.add(parseInt(cb.value));
+            } else {
+                selectedVisitors.delete(parseInt(cb.value));
+            }
+        });
+        updateBulkActions();
+    });
+}
+
+// Load visitors
+async function loadVisitors() {
+    try {
+        showLoading(true);
+        
+        const params = new URLSearchParams({
+            page: currentPage,
+            limit: 20,
+            ...currentFilters
+        });
+        
+        const response = await fetch(`/visitors/api/list?${params}`);
+        const data = await response.json();
+        
+        if (response.ok) {
+            visitors = data.visitors;
+            totalPages = data.pages;
+            renderVisitorsTable(visitors);
+            updatePagination(data);
+        } else {
+            showNotification('error', 'Error', 'Failed to load visitors');
+        }
+    } catch (error) {
+        console.error('Error loading visitors:', error);
+        showNotification('error', 'Error', 'Failed to load visitors');
+    } finally {
+        showLoading(false);
+    }
+}
+
+// Load statistics
+async function loadStats() {
+    try {
+        const response = await fetch('/visitors/api/stats');
+        const data = await response.json();
+        
+        if (response.ok) {
+            updateStatsDisplay(data);
+        }
+    } catch (error) {
+        console.error('Error loading stats:', error);
+    }
+}
+
+// Update stats display
+function updateStatsDisplay(stats) {
+    document.getElementById('checked-in-count').textContent = stats.current_checked_in || 0;
+    document.getElementById('pending-count').textContent = stats.status_breakdown?.pending || 0;
+    document.getElementById('today-count').textContent = stats.today_visitors || 0;
+    document.getElementById('week-count').textContent = stats.week_visitors || 0;
+}
+
+// Render visitors table
+function renderVisitorsTable(visitors) {
+    const tbody = document.getElementById('visitors-table-body');
+    
+    if (visitors.length === 0) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="8" class="px-6 py-12 text-center">
+                    <div class="flex flex-col items-center">
+                        <i data-feather="users" class="w-12 h-12 text-gray-300 mb-4"></i>
+                        <h3 class="text-lg font-medium text-gray-900 mb-2">No visitors found</h3>
+                        <p class="text-gray-500 mb-4">Get started by adding your first visitor.</p>
+                        <a href="/visitors/add" 
+                           class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700">
+                            <i data-feather="user-plus" class="w-4 h-4 mr-2"></i>
+                            Add Visitor
+                        </a>
+                    </div>
+                </td>
+            </tr>
+        `;
+        feather.replace();
+        return;
+    }
+    
+    tbody.innerHTML = visitors.map(visitor => `
+        <tr class="hover:bg-gray-50">
+            <td class="px-6 py-4">
+                <input type="checkbox" class="visitor-checkbox h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded" 
+                       value="${visitor.id}" onchange="toggleVisitorSelection(${visitor.id})">
+            </td>
+            <td class="px-6 py-4">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0 h-10 w-10">
+                        <div class="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center">
+                            <i data-feather="user" class="w-5 h-5 text-blue-600"></i>
+                        </div>
+                    </div>
+                    <div class="ml-4">
+                        <div class="text-sm font-medium text-gray-900">${visitor.full_name}</div>
+                        ${visitor.id_number ? `<div class="text-sm text-gray-500">ID: ${visitor.id_number}</div>` : ''}
+                    </div>
+                </div>
+            </td>
+            <td class="px-6 py-4">
+                <div class="text-sm text-gray-900">${visitor.phone || 'N/A'}</div>
+                ${visitor.email ? `<div class="text-sm text-gray-500">${visitor.email}</div>` : ''}
+            </td>
+            <td class="px-6 py-4">
+                <div class="text-sm text-gray-900">${visitor.company || 'Individual'}</div>
+            </td>
+            <td class="px-6 py-4">
+                <div class="text-sm text-gray-900 max-w-xs truncate" title="${visitor.purpose || ''}">${visitor.purpose || 'N/A'}</div>
+            </td>
+            <td class="px-6 py-4">
+                ${getStatusBadge(visitor.status)}
+            </td>
+            <td class="px-6 py-4">
+                <div class="text-sm text-gray-900">${formatDateTime(visitor.created_at)}</div>
+            </td>
+            <td class="px-6 py-4 text-right">
+                <div class="flex items-center justify-end space-x-2">
+                    ${getActionButtons(visitor)}
+                </div>
+            </td>
+        </tr>
+    `).join('');
+    
+    feather.replace();
+}
+
+// Get status badge
+function getStatusBadge(status) {
+    const badges = {
+        'pending': 'bg-yellow-100 text-yellow-800',
+        'checked_in': 'bg-green-100 text-green-800',
+        'checked_out': 'bg-gray-100 text-gray-800',
+        'expired': 'bg-red-100 text-red-800'
+    };
+    
+    const colors = badges[status] || 'bg-gray-100 text-gray-800';
+    const label = status.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase());
+    
+    return `<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${colors}">${label}</span>`;
+}
+
+// Get action buttons
+function getActionButtons(visitor) {
+    let buttons = [];
+    
+    // View button
+    buttons.push(`
+        <button onclick="viewVisitor(${visitor.id})" 
+                class="text-blue-600 hover:text-blue-900 text-sm font-medium">
+            View
+        </button>
+    `);
+    
+    // Check in/out buttons
+    if (visitor.status === 'pending') {
+        buttons.push(`
+            <button onclick="checkInVisitor(${visitor.id})" 
+                    class="text-green-600 hover:text-green-900 text-sm font-medium">
+                Check In
+            </button>
+        `);
+    } else if (visitor.status === 'checked_in') {
+        buttons.push(`
+            <button onclick="checkOutVisitor(${visitor.id})" 
+                    class="text-orange-600 hover:text-orange-900 text-sm font-medium">
+                Check Out
+            </button>
+        `);
+    }
+    
+    // QR code button
+    if (visitor.qr_code_id) {
+        buttons.push(`
+            <button onclick="showQRCode(${visitor.id})" 
+                    class="text-purple-600 hover:text-purple-900 text-sm font-medium">
+                QR Code
+            </button>
+        `);
+    }
+    
+    return buttons.join(' | ');
+}
+
+// Update pagination
+function updatePagination(data) {
+    document.getElementById('showing-start').textContent = data.total > 0 ? ((data.page - 1) * data.limit + 1) : 0;
+    document.getElementById('showing-end').textContent = Math.min(data.page * data.limit, data.total);
+    document.getElementById('total-count').textContent = data.total;
+    document.getElementById('page-info').textContent = `Page ${data.page} of ${data.pages}`;
+    
+    document.getElementById('prev-page').disabled = data.page <= 1;
+    document.getElementById('next-page').disabled = data.page >= data.pages;
+}
+
+// Show/hide loading
+function showLoading(show) {
+    const loadingRow = document.getElementById('loading-row');
+    if (show) {
+        loadingRow.classList.remove('hidden');
+    } else {
+        loadingRow.classList.add('hidden');
+    }
+}
+
+// Apply filters
+function applyFilters() {
+    currentFilters = {
+        search: document.getElementById('search-input').value,
+        status_filter: document.getElementById('status-filter').value,
+    };
+    
+    const locationFilter = document.getElementById('location-filter');
+    if (locationFilter) {
+        currentFilters.location_filter = locationFilter.value;
+    }
+    
+    currentPage = 1;
+    loadVisitors();
+}
+
+// Clear filters
+function clearFilters() {
+    document.getElementById('search-input').value = '';
+    document.getElementById('status-filter').value = '';
+    
+    const locationFilter = document.getElementById('location-filter');
+    if (locationFilter) {
+        locationFilter.value = '';
+    }
+    
+    currentFilters = {};
+    currentPage = 1;
+    loadVisitors();
+}
+
+// Change page
+function changePage(direction) {
+    const newPage = currentPage + direction;
+    if (newPage >= 1 && newPage <= totalPages) {
+        currentPage = newPage;
+        loadVisitors();
+    }
+}
+
+// Refresh visitors
+function refreshVisitors() {
+    loadVisitors();
+    loadStats();
+    showNotification('success', 'Refreshed', 'Visitor list has been updated');
+}
+
+// Toggle visitor selection
+function toggleVisitorSelection(visitorId) {
+    if (selectedVisitors.has(visitorId)) {
+        selectedVisitors.delete(visitorId);
+    } else {
+        selectedVisitors.add(visitorId);
+    }
+    updateBulkActions();
+}
+
+// Update bulk actions
+function updateBulkActions() {
+    const bulkActions = document.getElementById('bulk-actions');
+    const selectedCount = document.getElementById('selected-count');
+    
+    if (selectedVisitors.size > 0) {
+        bulkActions.classList.remove('hidden');
+        selectedCount.textContent = selectedVisitors.size;
+    } else {
+        bulkActions.classList.add('hidden');
+    }
+}
+
+// Clear selection
+function clearSelection() {
+    selectedVisitors.clear();
+    document.querySelectorAll('.visitor-checkbox').forEach(cb => cb.checked = false);
+    document.getElementById('select-all').checked = false;
+    updateBulkActions();
+}
+
+// View visitor details
+async function viewVisitor(visitorId) {
+    try {
+        const response = await fetch(`/visitors/api/${visitorId}`);
+        const data = await response.json();
+        
+        if (response.ok) {
+            showVisitorModal(data.visitor);
+        } else {
+            showNotification('error', 'Error', 'Failed to load visitor details');
+        }
+    } catch (error) {
+        console.error('Error loading visitor:', error);
+        showNotification('error', 'Error', 'Failed to load visitor details');
+    }
+}
+
+// Show visitor modal
+function showVisitorModal(visitor) {
+    const modal = document.getElementById('visitor-modal');
+    const title = document.getElementById('modal-title');
+    const content = document.getElementById('modal-content');
+    
+    title.textContent = `${visitor.full_name} - Details`;
+    
+    content.innerHTML = `
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+                <h4 class="text-sm font-medium text-gray-900 mb-3">Personal Information</h4>
+                <dl class="space-y-3">
+                    <div>
+                        <dt class="text-sm font-medium text-gray-500">Full Name</dt>
+                        <dd class="text-sm text-gray-900">${visitor.full_name}</dd>
+                    </div>
+                    <div>
+                        <dt class="text-sm font-medium text-gray-500">Phone</dt>
+                        <dd class="text-sm text-gray-900">${visitor.phone || 'N/A'}</dd>
+                    </div>
+                    <div>
+                        <dt class="text-sm font-medium text-gray-500">Email</dt>
+                        <dd class="text-sm text-gray-900">${visitor.email || 'N/A'}</dd>
+                    </div>
+                    <div>
+                        <dt class="text-sm font-medium text-gray-500">ID Number</dt>
+                        <dd class="text-sm text-gray-900">${visitor.id_number || 'N/A'}</dd>
+                    </div>
+                </dl>
+            </div>
+            
+            <div>
+                <h4 class="text-sm font-medium text-gray-900 mb-3">Visit Information</h4>
+                <dl class="space-y-3">
+                    <div>
+                        <dt class="text-sm font-medium text-gray-500">Company</dt>
+                        <dd class="text-sm text-gray-900">${visitor.company || 'Individual'}</dd>
+                    </div>
+                    <div>
+                        <dt class="text-sm font-medium text-gray-500">Purpose</dt>
+                        <dd class="text-sm text-gray-900">${visitor.purpose || 'N/A'}</dd>
+                    </div>
+                    <div>
+                        <dt class="text-sm font-medium text-gray-500">Host</dt>
+                        <dd class="text-sm text-gray-900">${visitor.host_name || 'N/A'}</dd>
+                    </div>
+                    <div>
+                        <dt class="text-sm font-medium text-gray-500">Status</dt>
+                        <dd class="text-sm text-gray-900">${getStatusBadge(visitor.status)}</dd>
+                    </div>
+                    <div>
+                        <dt class="text-sm font-medium text-gray-500">Created</dt>
+                        <dd class="text-sm text-gray-900">${formatDateTime(visitor.created_at)}</dd>
+                    </div>
+                </dl>
+            </div>
+        </div>
+    `;
+    
+    modal.classList.remove('hidden');
+}
+
+// Close modal
+function closeModal() {
+    document.getElementById('visitor-modal').classList.add('hidden');
+}
+
+// Check in visitor
+async function checkInVisitor(visitorId) {
+    try {
+        const response = await fetch('/visitors/api/check-in', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                visitor_id: visitorId
+            })
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok) {
+            showNotification('success', 'Success', data.message);
+            loadVisitors();
+            loadStats();
+        } else {
+            showNotification('error', 'Error', data.detail || 'Failed to check in visitor');
+        }
+    } catch (error) {
+        console.error('Error checking in visitor:', error);
+        showNotification('error', 'Error', 'Failed to check in visitor');
+    }
+}
+
+// Check out visitor
+async function checkOutVisitor(visitorId) {
+    try {
+        const response = await fetch('/visitors/api/check-out', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                visitor_id: visitorId
+            })
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok) {
+            showNotification('success', 'Success', data.message);
+            loadVisitors();
+            loadStats();
+        } else {
+            showNotification('error', 'Error', data.detail || 'Failed to check out visitor');
+        }
+    } catch (error) {
+        console.error('Error checking out visitor:', error);
+        showNotification('error', 'Error', 'Failed to check out visitor');
+    }
+}
+
+// Show QR code
+async function showQRCode(visitorId) {
+    try {
+        const response = await fetch(`/visitors/api/${visitorId}/qr-sticker`);
+        const data = await response.json();
+        
+        if (response.ok) {
+            currentQRData = data;
+            const qrModal = document.getElementById('qr-modal');
+            const qrContent = document.getElementById('qr-content');
+            
+            qrContent.innerHTML = `
+                <img src="${data.sticker}" alt="QR Code Sticker" class="mx-auto max-w-full h-auto rounded-lg shadow-lg">
+                <p class="mt-4 text-sm text-gray-600">QR code sticker for visitor</p>
+            `;
+            
+            qrModal.classList.remove('hidden');
+        } else {
+            showNotification('error', 'Error', 'Failed to generate QR code');
+        }
+    } catch (error) {
+        console.error('Error generating QR code:', error);
+        showNotification('error', 'Error', 'Failed to generate QR code');
+    }
+}
+
+// Close QR modal
+function closeQRModal() {
+    document.getElementById('qr-modal').classList.add('hidden');
+    currentQRData = null;
+}
+
+// Download QR code
+function downloadQR() {
+    if (!currentQRData) return;
+    
+    const link = document.createElement('a');
+    link.href = currentQRData.sticker;
+    link.download = currentQRData.filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+}
+
+// Bulk check out
+async function bulkCheckOut() {
+    if (selectedVisitors.size === 0) return;
+    
+    try {
+        const response = await fetch('/visitors/api/bulk-check-out', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(Array.from(selectedVisitors))
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok) {
+            showNotification('success', 'Success', data.message);
+            clearSelection();
+            loadVisitors();
+            loadStats();
+        } else {
+            showNotification('error', 'Error', 'Failed to process bulk check-out');
+        }
+    } catch (error) {
+        console.error('Error in bulk check-out:', error);
+        showNotification('error', 'Error', 'Failed to process bulk check-out');
+    }
+}
+</script>
+{% endblock %}

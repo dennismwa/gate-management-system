@@ -1,0 +1,645 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+    <!-- Header -->
+    <div class="mb-8">
+        <div class="flex items-center justify-between flex-wrap gap-4">
+            <div>
+                <h1 class="text-3xl font-bold text-gray-900">Dashboard</h1>
+                <p class="text-gray-600 mt-1">
+                    Welcome back, <span class="font-medium">{{ user.full_name }}</span>
+                    {% if user.location %}
+                    - <span class="text-blue-600">{{ user.location.name }}</span>
+                    {% endif %}
+                </p>
+            </div>
+            
+            <div class="flex items-center space-x-3">
+                <div class="text-right text-sm text-gray-500">
+                    <div id="current-time" class="font-mono"></div>
+                    <div>{{ user.location.name if user.location else 'All Locations' }}</div>
+                </div>
+                
+                <button onclick="refreshDashboard()" 
+                        class="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors">
+                    <i data-feather="refresh-cw" class="w-4 h-4 mr-2"></i>
+                    Refresh
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Stats Grid -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <!-- Current Visitors -->
+        <div class="stat-card rounded-xl p-6 card-hover">
+            <div class="flex items-center">
+                <div class="flex-shrink-0">
+                    <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+                        <i data-feather="users" class="w-6 h-6 text-blue-600"></i>
+                    </div>
+                </div>
+                <div class="ml-4 flex-1">
+                    <p class="text-sm font-medium text-gray-600">Current Visitors</p>
+                    <p id="current-visitors" class="text-2xl font-bold text-gray-900">
+                        {{ stats.current_visitors if stats else 0 }}
+                    </p>
+                    <p class="text-xs text-gray-500 mt-1">Currently inside</p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Current Vehicles -->
+        <div class="stat-card rounded-xl p-6 card-hover">
+            <div class="flex items-center">
+                <div class="flex-shrink-0">
+                    <div class="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
+                        <i data-feather="truck" class="w-6 h-6 text-green-600"></i>
+                    </div>
+                </div>
+                <div class="ml-4 flex-1">
+                    <p class="text-sm font-medium text-gray-600">Current Vehicles</p>
+                    <p id="current-vehicles" class="text-2xl font-bold text-gray-900">
+                        {{ stats.current_vehicles if stats else 0 }}
+                    </p>
+                    <p class="text-xs text-gray-500 mt-1">Currently inside</p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Today's Total -->
+        <div class="stat-card rounded-xl p-6 card-hover">
+            <div class="flex items-center">
+                <div class="flex-shrink-0">
+                    <div class="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
+                        <i data-feather="calendar" class="w-6 h-6 text-purple-600"></i>
+                    </div>
+                </div>
+                <div class="ml-4 flex-1">
+                    <p class="text-sm font-medium text-gray-600">Today's Total</p>
+                    <p id="todays-total" class="text-2xl font-bold text-gray-900">
+                        {{ stats.total_today if stats else 0 }}
+                    </p>
+                    <p class="text-xs text-gray-500 mt-1">Visitors & vehicles</p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- This Week -->
+        <div class="stat-card rounded-xl p-6 card-hover">
+            <div class="flex items-center">
+                <div class="flex-shrink-0">
+                    <div class="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center">
+                        <i data-feather="trending-up" class="w-6 h-6 text-orange-600"></i>
+                    </div>
+                </div>
+                <div class="ml-4 flex-1">
+                    <p class="text-sm font-medium text-gray-600">This Week</p>
+                    <p id="week-total" class="text-2xl font-bold text-gray-900">
+                        {{ stats.total_week if stats else 0 }}
+                    </p>
+                    <p class="text-xs text-gray-500 mt-1">Total entries</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Quick Actions -->
+    <div class="mb-8">
+        <h2 class="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h2>
+        <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+            <a href="/visitors/add" class="bg-white rounded-xl p-4 text-center card-hover border border-gray-200 group">
+                <div class="w-12 h-12 bg-blue-100 rounded-lg mx-auto mb-3 flex items-center justify-center group-hover:bg-blue-200 transition-colors">
+                    <i data-feather="user-plus" class="w-6 h-6 text-blue-600"></i>
+                </div>
+                <p class="text-sm font-medium text-gray-900">Add Visitor</p>
+            </a>
+            
+            <a href="/vehicles/add" class="bg-white rounded-xl p-4 text-center card-hover border border-gray-200 group">
+                <div class="w-12 h-12 bg-green-100 rounded-lg mx-auto mb-3 flex items-center justify-center group-hover:bg-green-200 transition-colors">
+                    <i data-feather="plus-circle" class="w-6 h-6 text-green-600"></i>
+                </div>
+                <p class="text-sm font-medium text-gray-900">Add Vehicle</p>
+            </a>
+            
+            <a href="/qr/scan" class="bg-white rounded-xl p-4 text-center card-hover border border-gray-200 group">
+                <div class="w-12 h-12 bg-purple-100 rounded-lg mx-auto mb-3 flex items-center justify-center group-hover:bg-purple-200 transition-colors">
+                    <i data-feather="qr-code" class="w-6 h-6 text-purple-600"></i>
+                </div>
+                <p class="text-sm font-medium text-gray-900">Scan QR</p>
+            </a>
+            
+            <a href="/visitors" class="bg-white rounded-xl p-4 text-center card-hover border border-gray-200 group">
+                <div class="w-12 h-12 bg-indigo-100 rounded-lg mx-auto mb-3 flex items-center justify-center group-hover:bg-indigo-200 transition-colors">
+                    <i data-feather="list" class="w-6 h-6 text-indigo-600"></i>
+                </div>
+                <p class="text-sm font-medium text-gray-900">View Visitors</p>
+            </a>
+            
+            <a href="/vehicles" class="bg-white rounded-xl p-4 text-center card-hover border border-gray-200 group">
+                <div class="w-12 h-12 bg-yellow-100 rounded-lg mx-auto mb-3 flex items-center justify-center group-hover:bg-yellow-200 transition-colors">
+                    <i data-feather="list" class="w-6 h-6 text-yellow-600"></i>
+                </div>
+                <p class="text-sm font-medium text-gray-900">View Vehicles</p>
+            </a>
+            
+            {% if user.role == 'admin' %}
+            <a href="/admin" class="bg-white rounded-xl p-4 text-center card-hover border border-gray-200 group">
+                <div class="w-12 h-12 bg-red-100 rounded-lg mx-auto mb-3 flex items-center justify-center group-hover:bg-red-200 transition-colors">
+                    <i data-feather="settings" class="w-6 h-6 text-red-600"></i>
+                </div>
+                <p class="text-sm font-medium text-gray-900">Admin Panel</p>
+            </a>
+            {% endif %}
+        </div>
+    </div>
+    
+    <!-- Main Content Grid -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <!-- Chart Section -->
+        <div class="lg:col-span-2">
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                <div class="flex items-center justify-between mb-6">
+                    <h3 class="text-lg font-semibold text-gray-900">Activity Overview</h3>
+                    <div class="flex space-x-2">
+                        <button onclick="updateChart('week')" 
+                                class="chart-period-btn active px-3 py-1 text-sm rounded-md bg-blue-100 text-blue-700">
+                            Week
+                        </button>
+                        <button onclick="updateChart('month')" 
+                                class="chart-period-btn px-3 py-1 text-sm rounded-md text-gray-600 hover:bg-gray-100">
+                            Month
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="relative h-64">
+                    <canvas id="activity-chart"></canvas>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Recent Activity -->
+        <div class="space-y-6">
+            <!-- Recent Visitors -->
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                <h3 class="text-lg font-semibold text-gray-900 mb-4">Recent Visitors</h3>
+                <div id="recent-visitors" class="space-y-3">
+                    {% if stats and stats.recent_visitors %}
+                    {% for visitor in stats.recent_visitors %}
+                    <div class="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
+                        <div class="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                            <i data-feather="user" class="w-4 h-4 text-blue-600"></i>
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <p class="text-sm font-medium text-gray-900 truncate">{{ visitor.full_name }}</p>
+                            <p class="text-xs text-gray-500">{{ visitor.company or 'Individual' }}</p>
+                        </div>
+                        <div class="flex-shrink-0">
+                            <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium
+                                {% if visitor.status == 'checked_in' %}bg-green-100 text-green-800
+                                {% elif visitor.status == 'checked_out' %}bg-gray-100 text-gray-800
+                                {% else %}bg-yellow-100 text-yellow-800{% endif %}">
+                                {{ visitor.status.replace('_', ' ').title() }}
+                            </span>
+                        </div>
+                    </div>
+                    {% endfor %}
+                    {% else %}
+                    <div class="text-center py-6 text-gray-500">
+                        <i data-feather="users" class="w-8 h-8 mx-auto mb-2 text-gray-300"></i>
+                        <p class="text-sm">No recent visitors</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <!-- Recent Vehicles -->
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                <h3 class="text-lg font-semibold text-gray-900 mb-4">Recent Vehicles</h3>
+                <div id="recent-vehicles" class="space-y-3">
+                    {% if stats and stats.recent_vehicles %}
+                    {% for vehicle in stats.recent_vehicles %}
+                    <div class="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
+                        <div class="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
+                            <i data-feather="truck" class="w-4 h-4 text-green-600"></i>
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <p class="text-sm font-medium text-gray-900 truncate">{{ vehicle.license_plate }}</p>
+                            <p class="text-xs text-gray-500">{{ vehicle.driver_name }}</p>
+                        </div>
+                        <div class="flex-shrink-0">
+                            <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium
+                                {% if vehicle.status == 'checked_in' %}bg-green-100 text-green-800
+                                {% elif vehicle.status == 'checked_out' %}bg-gray-100 text-gray-800
+                                {% else %}bg-yellow-100 text-yellow-800{% endif %}">
+                                {{ vehicle.status.replace('_', ' ').title() }}
+                            </span>
+                        </div>
+                    </div>
+                    {% endfor %}
+                    {% else %}
+                    <div class="text-center py-6 text-gray-500">
+                        <i data-feather="truck" class="w-8 h-8 mx-auto mb-2 text-gray-300"></i>
+                        <p class="text-sm">No recent vehicles</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Live Activity Feed -->
+    <div class="mt-8">
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <div class="flex items-center justify-between mb-6">
+                <h3 class="text-lg font-semibold text-gray-900">Live Activity Feed</h3>
+                <div class="flex items-center space-x-2">
+                    <div class="w-2 h-2 bg-green-400 rounded-full pulse"></div>
+                    <span class="text-sm text-gray-500">Live</span>
+                </div>
+            </div>
+            
+            <div id="activity-feed" class="space-y-3 max-h-64 overflow-y-auto">
+                <!-- Activity items will be loaded here -->
+                <div class="text-center py-8 text-gray-500">
+                    <i data-feather="activity" class="w-8 h-8 mx-auto mb-2 text-gray-300"></i>
+                    <p class="text-sm">Loading activity feed...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+let activityChart = null;
+let currentPeriod = 'week';
+
+// Initialize dashboard
+document.addEventListener('DOMContentLoaded', function() {
+    updateCurrentTime();
+    setInterval(updateCurrentTime, 1000);
+    
+    loadActivityFeed();
+    setInterval(loadActivityFeed, 30000); // Refresh every 30 seconds
+    
+    refreshStats();
+    setInterval(refreshStats, 60000); // Refresh every minute
+    
+    initializeChart();
+});
+
+function updateCurrentTime() {
+    const now = new Date();
+    const timeString = now.toLocaleTimeString('en-US', {
+        hour12: false,
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit'
+    });
+    const dateString = now.toLocaleDateString('en-US', {
+        weekday: 'short',
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric'
+    });
+    
+    document.getElementById('current-time').innerHTML = `${timeString}<br>${dateString}`;
+}
+
+async function refreshDashboard() {
+    showLoading();
+    try {
+        await Promise.all([
+            refreshStats(),
+            loadActivityFeed(),
+            updateChart(currentPeriod)
+        ]);
+        showNotification('success', 'Dashboard Updated', 'All data has been refreshed');
+    } catch (error) {
+        showNotification('error', 'Update Failed', 'Failed to refresh dashboard data');
+    } finally {
+        hideLoading();
+    }
+}
+
+async function refreshStats() {
+    try {
+        const response = await fetch('/dashboard/stats');
+        const data = await response.json();
+        
+        if (response.ok) {
+            // Update stat counters
+            document.getElementById('current-visitors').textContent = data.current_visitors || 0;
+            document.getElementById('current-vehicles').textContent = data.current_vehicles || 0;
+            document.getElementById('todays-total').textContent = data.total_today || 0;
+            document.getElementById('week-total').textContent = data.total_week || 0;
+            
+            // Update recent visitors and vehicles lists
+            updateRecentList('recent-visitors', data.recent_visitors, 'visitor');
+            updateRecentList('recent-vehicles', data.recent_vehicles, 'vehicle');
+        }
+    } catch (error) {
+        console.error('Failed to refresh stats:', error);
+    }
+}
+
+function updateRecentList(containerId, items, type) {
+    const container = document.getElementById(containerId);
+    
+    if (!items || items.length === 0) {
+        const icon = type === 'visitor' ? 'users' : 'truck';
+        const label = type === 'visitor' ? 'visitors' : 'vehicles';
+        
+        container.innerHTML = `
+            <div class="text-center py-6 text-gray-500">
+                <i data-feather="${icon}" class="w-8 h-8 mx-auto mb-2 text-gray-300"></i>
+                <p class="text-sm">No recent ${label}</p>
+            </div>
+        `;
+        feather.replace();
+        return;
+    }
+    
+    const itemsHtml = items.map(item => {
+        const name = type === 'visitor' ? item.full_name : item.license_plate;
+        const subtitle = type === 'visitor' ? (item.company || 'Individual') : item.driver_name;
+        const icon = type === 'visitor' ? 'user' : 'truck';
+        const iconColor = type === 'visitor' ? 'blue' : 'green';
+        
+        let statusClass = 'bg-gray-100 text-gray-800';
+        if (item.status === 'checked_in') {
+            statusClass = 'bg-green-100 text-green-800';
+        } else if (item.status === 'pending') {
+            statusClass = 'bg-yellow-100 text-yellow-800';
+        }
+        
+        return `
+            <div class="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
+                <div class="w-8 h-8 bg-${iconColor}-100 rounded-full flex items-center justify-center">
+                    <i data-feather="${icon}" class="w-4 h-4 text-${iconColor}-600"></i>
+                </div>
+                <div class="flex-1 min-w-0">
+                    <p class="text-sm font-medium text-gray-900 truncate">${name}</p>
+                    <p class="text-xs text-gray-500">${subtitle}</p>
+                </div>
+                <div class="flex-shrink-0">
+                    <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${statusClass}">
+                        ${item.status.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                    </span>
+                </div>
+            </div>
+        `;
+    }).join('');
+    
+    container.innerHTML = itemsHtml;
+    feather.replace();
+}
+
+async function loadActivityFeed() {
+    try {
+        const response = await fetch('/dashboard/activity?limit=10');
+        const data = await response.json();
+        
+        if (response.ok && data.activity) {
+            const feedContainer = document.getElementById('activity-feed');
+            
+            if (data.activity.length === 0) {
+                feedContainer.innerHTML = `
+                    <div class="text-center py-8 text-gray-500">
+                        <i data-feather="activity" class="w-8 h-8 mx-auto mb-2 text-gray-300"></i>
+                        <p class="text-sm">No recent activity</p>
+                    </div>
+                `;
+                feather.replace();
+                return;
+            }
+            
+            const activityHtml = data.activity.map(entry => {
+                const time = new Date(entry.timestamp).toLocaleTimeString('en-US', {
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
+                
+                let icon, iconColor, actionText, subjectName, subjectDetail;
+                
+                if (entry.entry_type === 'visitor') {
+                    icon = 'user';
+                    iconColor = entry.action === 'check_in' ? 'green' : 'red';
+                    actionText = entry.action === 'check_in' ? 'checked in' : 'checked out';
+                    subjectName = entry.visitor ? entry.visitor.full_name : 'Unknown Visitor';
+                    subjectDetail = entry.visitor ? entry.visitor.company : '';
+                } else {
+                    icon = 'truck';
+                    iconColor = entry.action === 'check_in' ? 'green' : 'red';
+                    actionText = entry.action === 'check_in' ? 'entered' : 'exited';
+                    subjectName = entry.vehicle ? entry.vehicle.license_plate : 'Unknown Vehicle';
+                    subjectDetail = entry.vehicle ? entry.vehicle.driver_name : '';
+                }
+                
+                return `
+                    <div class="flex items-center space-x-4 p-3 border border-gray-200 rounded-lg">
+                        <div class="w-10 h-10 bg-${iconColor}-100 rounded-full flex items-center justify-center">
+                            <i data-feather="${icon}" class="w-5 h-5 text-${iconColor}-600"></i>
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <p class="text-sm font-medium text-gray-900">
+                                <span class="font-semibold">${subjectName}</span> ${actionText}
+                            </p>
+                            ${subjectDetail ? `<p class="text-xs text-gray-500">${subjectDetail}</p>` : ''}
+                        </div>
+                        <div class="flex-shrink-0 text-right">
+                            <p class="text-xs text-gray-500">${time}</p>
+                            ${entry.location ? `<p class="text-xs text-gray-400">${entry.location.name}</p>` : ''}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+            
+            feedContainer.innerHTML = activityHtml;
+            feather.replace();
+        }
+    } catch (error) {
+        console.error('Failed to load activity feed:', error);
+    }
+}
+
+async function initializeChart() {
+    const ctx = document.getElementById('activity-chart').getContext('2d');
+    
+    // Get initial chart data
+    const chartData = await getChartData(currentPeriod);
+    
+    activityChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: chartData.labels,
+            datasets: [
+                {
+                    label: 'Visitors',
+                    data: chartData.visitors,
+                    borderColor: '#3B82F6',
+                    backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                    borderWidth: 3,
+                    fill: true,
+                    tension: 0.4,
+                    pointBackgroundColor: '#3B82F6',
+                    pointBorderColor: '#ffffff',
+                    pointBorderWidth: 2,
+                    pointRadius: 5,
+                    pointHoverRadius: 7
+                },
+                {
+                    label: 'Vehicles',
+                    data: chartData.vehicles,
+                    borderColor: '#10B981',
+                    backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                    borderWidth: 3,
+                    fill: true,
+                    tension: 0.4,
+                    pointBackgroundColor: '#10B981',
+                    pointBorderColor: '#ffffff',
+                    pointBorderWidth: 2,
+                    pointRadius: 5,
+                    pointHoverRadius: 7
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'top',
+                    labels: {
+                        usePointStyle: true,
+                        padding: 20,
+                        font: {
+                            size: 12,
+                            weight: '500'
+                        }
+                    }
+                },
+                tooltip: {
+                    mode: 'index',
+                    intersect: false,
+                    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                    titleColor: '#ffffff',
+                    bodyColor: '#ffffff',
+                    borderColor: '#3B82F6',
+                    borderWidth: 1,
+                    cornerRadius: 8,
+                    padding: 12
+                }
+            },
+            scales: {
+                x: {
+                    grid: {
+                        display: false
+                    },
+                    ticks: {
+                        font: {
+                            size: 11
+                        },
+                        color: '#6B7280'
+                    }
+                },
+                y: {
+                    beginAtZero: true,
+                    grid: {
+                        color: 'rgba(107, 114, 128, 0.1)'
+                    },
+                    ticks: {
+                        font: {
+                            size: 11
+                        },
+                        color: '#6B7280',
+                        stepSize: 1
+                    }
+                }
+            },
+            interaction: {
+                mode: 'nearest',
+                axis: 'x',
+                intersect: false
+            },
+            elements: {
+                point: {
+                    hoverBorderWidth: 3
+                }
+            }
+        }
+    });
+}
+
+async function updateChart(period) {
+    currentPeriod = period;
+    
+    // Update button states
+    document.querySelectorAll('.chart-period-btn').forEach(btn => {
+        btn.classList.remove('active', 'bg-blue-100', 'text-blue-700');
+        btn.classList.add('text-gray-600', 'hover:bg-gray-100');
+    });
+    
+    event.target.classList.add('active', 'bg-blue-100', 'text-blue-700');
+    event.target.classList.remove('text-gray-600', 'hover:bg-gray-100');
+    
+    // Get new data and update chart
+    const chartData = await getChartData(period);
+    
+    if (activityChart) {
+        activityChart.data.labels = chartData.labels;
+        activityChart.data.datasets[0].data = chartData.visitors;
+        activityChart.data.datasets[1].data = chartData.vehicles;
+        activityChart.update('active');
+    }
+}
+
+async function getChartData(period) {
+    try {
+        const response = await fetch(`/dashboard/chart-data?period=${period}`);
+        return await response.json();
+    } catch (error) {
+        console.error('Failed to get chart data:', error);
+        return { labels: [], visitors: [], vehicles: [] };
+    }
+}
+
+// Auto-refresh functionality
+let autoRefreshEnabled = true;
+let refreshInterval;
+
+function toggleAutoRefresh() {
+    autoRefreshEnabled = !autoRefreshEnabled;
+    
+    if (autoRefreshEnabled) {
+        refreshInterval = setInterval(() => {
+            refreshStats();
+            loadActivityFeed();
+        }, 30000);
+        showNotification('info', 'Auto-refresh Enabled', 'Dashboard will update automatically');
+    } else {
+        clearInterval(refreshInterval);
+        showNotification('info', 'Auto-refresh Disabled', 'Dashboard updates paused');
+    }
+}
+
+// Keyboard shortcuts
+document.addEventListener('keydown', function(e) {
+    // Ctrl/Cmd + R for refresh
+    if ((e.ctrlKey || e.metaKey) && e.key === 'r') {
+        e.preventDefault();
+        refreshDashboard();
+    }
+    
+    // Ctrl/Cmd + Q for QR scan
+    if ((e.ctrlKey || e.metaKey) && e.key === 'q') {
+        e.preventDefault();
+        window.location.href = '/qr/scan';
+    }
+});
+</script>
+{% endblock %}
